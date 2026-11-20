@@ -1,0 +1,13 @@
+# OS / editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+.vscode/
+.idea/
+*.swp
+
+# nothing here is generated, but keep local scratch out of the repo
+node_modules/
+.cache/
+*.bak

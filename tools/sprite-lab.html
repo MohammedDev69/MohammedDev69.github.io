@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite Lab — Mohamed Nasr portfolio</title>
+<style>
+  :root {
+    --bg: #07080b; --panel: #10151e; --line: #232c3b; --line-2: #3a465c;
+    --text: #e9e5dd; --muted: #8e98a8; --amber: #ffb454; --mint: #6ee7c7; --red: #ff6b6b;
+    --mono: ui-monospace, Consolas, "Cascadia Mono", Menlo, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    padding: 24px clamp(14px, 3vw, 40px) 60px;
+  }
+  h1 { font-family: var(--mono); font-size: 17px; letter-spacing: .16em; margin: 0 0 6px; }
+  h1 span { color: var(--amber); }
+  .lede { color: var(--muted); font-size: 13px; max-width: 78ch; margin: 0 0 22px; }
+  h2 { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+       color: var(--amber); border-bottom: 1px solid var(--line); padding-bottom: 7px; margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--line); padding: 16px; }
+  .drop {
+    border: 1px dashed var(--line-2); padding: 22px 14px; text-align: center; cursor: pointer;
+    color: var(--muted); font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .drop:hover, .drop.is-over { border-color: var(--amber); color: var(--amber); background: #141a24; }
+  .drop input { display: none; }
+  .status { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; margin-top: 10px; color: var(--muted); }
+  .status b { color: var(--mint); }
+  .status i { color: var(--red); font-style: normal; }
+  .controls { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .ctrl { display: grid; grid-template-columns: 118px 1fr 52px; align-items: center; gap: 10px;
+          font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); }
+  .ctrl input[type=range] { width: 100%; accent-color: var(--amber); }
+  .ctrl output { color: var(--text); text-align: right; }
+  .ctrl select {
+    background: #0b0f16; color: var(--text); border: 1px solid var(--line-2);
+    font-family: var(--mono); font-size: 10px; padding: 5px;
+  }
+  .row-check { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .row-check label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .frames { display: grid; grid-template-columns: repeat(4, 96px); gap: 8px; }
+  .cell { border: 1px solid var(--line); background:
+      repeating-conic-gradient(#0d1219 0% 25%, #111721 0% 50%) 50% / 12px 12px; position: relative; }
+  .cell canvas { display: block; width: 96px; height: 144px; image-rendering: pixelated; }
+  .cell span { position: absolute; left: 3px; top: 3px; font-family: var(--mono); font-size: 8px;
+               color: #7f8c9f; background: rgba(6,9,14,.8); padding: 1px 4px; }
+  .preview-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .preview-row canvas { image-rendering: pixelated; background:
+      repeating-conic-gradient(#0d1219 0% 25%, #111721 0% 50%) 50% / 12px 12px; border: 1px solid var(--line); }
+  .preview-row b { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; color: var(--muted); min-width: 54px; }
+  pre { background: #0b0f16; border: 1px solid var(--line); padding: 12px; overflow-x: auto;
+        font-family: var(--mono); font-size: 11px; color: #b9c4d6; margin: 0; }
+  .steps { color: var(--muted); font-size: 13px; }
+  .steps li { margin-bottom: 6px; }
+  code { font-family: var(--mono); color: var(--amber); background: #161d29; padding: 1px 5px; font-size: 12px; }
+  .warn { border-color: rgba(255,107,107,.5); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .swap { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    background: #10141c; border: 1px solid var(--line-2); color: #d5dce8; cursor: pointer;
+    font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; padding: 8px 12px;
+  }
+  button:hover { border-color: var(--amber); color: var(--amber); }
+</style>
+</head>
+<body>
+  <h1>SPRITE <span>LAB</span></h1>
+  <p class="lede">
+    Load a 4&times;4 walk sheet here to check it before shipping it. Nothing is uploaded anywhere:
+    the file is read in this page only. When the frames look right, save the PNG into the project's
+    <code>assets</code> folder with the name shown below and reload the portfolio.
+  </p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1 &middot; Load a sheet</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/png,image/webp,image/jpeg">
+        <div id="drop-text">CLICK OR DROP A PNG HERE<br>4 columns &times; 4 rows</div>
+      </label>
+      <div class="status" id="status">Waiting for a file&hellip;</div>
+      <div class="swap">
+        <button type="button" id="load-sample">Load a synthetic sample sheet</button>
+        <button type="button" id="reset">Clear</button>
+      </div>
+      <p class="note" id="save-hint">
+        Target file names: <code>assets/mohamed-spritesheet.png</code> (Mohamed) or
+        <code>assets/visitor-spritesheet.png</code> (visitor).
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>2 &middot; Import options</h2>
+      <div class="controls">
+        <label class="ctrl">HEIGHT <input type="range" id="h" min="24" max="56" step="1" value="40"><output id="h-out">40</output></label>
+        <label class="ctrl">BLACK KEY <select id="key">
+          <option value="auto">auto (key pure black)</option>
+          <option value="never">never (already transparent)</option>
+        </select></label>
+        <label class="ctrl">THRESHOLD <input type="range" id="thr" min="0" max="120" step="2" value="30"><output id="thr-out">30</output></label>
+      </div>
+      <div class="row-check" style="margin-top:14px">
+        <label><input type="checkbox" id="smooth"> smooth downscale</label>
+        <label><input type="checkbox" id="swap"> swap left/right</label>
+        <label><input type="checkbox" id="anim" checked> animate</label>
+      </div>
+      <p class="note">If a dark box appears around the character, the background is not pure black:
+        raise <code>keyThreshold</code> until it disappears, or re-export the sheet as a real transparent PNG.</p>
+      <pre id="snippet" style="margin-top:14px"></pre>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>3 &middot; Sliced frames</h2>
+      <div class="preview-row">
+        <b>DOWN</b><canvas id="anim-down" width="96" height="144"></canvas>
+        <b>LEFT</b><canvas id="anim-left" width="96" height="144"></canvas>
+        <b>RIGHT</b><canvas id="anim-right" width="96" height="144"></canvas>
+        <b>UP</b><canvas id="anim-up" width="96" height="144"></canvas>
+        <b>PORTRAIT</b><canvas id="portrait" width="96" height="96"></canvas>
+      </div>
+      <div class="frames" id="frames"></div>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>4 &middot; Ship it</h2>
+      <ol class="steps">
+        <li>Save the PNG as <code>assets/mohamed-spritesheet.png</code> or <code>assets/visitor-spritesheet.png</code> inside the project folder.</li>
+        <li>Keep the option values from step 2 in <code>js/config.js</code> under <code>sprites</code>.</li>
+        <li>Reload <code>index.html</code> and talk to Mohamed — the portrait is cropped from his front frame automatically.</li>
+      </ol>
+      <p class="note">Missing or broken files are not an error: the game falls back to its built-in pixel characters.</p>
+    </section>
+  </div>
+
+<script src="../js/pixel-font.js"></script>
+<script src="../js/sprites.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var current = null;
+  var frameIndex = 0;
+
+  function opts() {
+    return {
+      targetHeight: +$("h").value,
+      smoothing: $("smooth").checked,
+      keyBlack: $("key").value,
+      keyThreshold: +$("thr").value,
+      swapLeftRight: $("swap").checked,
+    };
+  }
+
+  function snippet() {
+    var o = opts();
+    $("snippet").textContent =
+      "sprites: {\n" +
+      "  npcSheet: \"assets/mohamed-spritesheet.png\",\n" +
+      "  playerSheet: \"assets/visitor-spritesheet.png\",\n" +
+      "  npcPortrait: \"assets/mohamed-portrait.png\",\n" +
+      "  targetHeight: " + o.targetHeight + ",\n" +
+      "  smoothing: " + o.smoothing + ",\n" +
+      "  keyBlack: \"" + o.keyBlack + "\",\n" +
+      "  keyThreshold: " + o.keyThreshold + ",\n" +
+      "  swapLeftRight: " + o.swapLeftRight + ",\n" +
+      "  rowOrder: [\"down\", \"left\", \"right\", \"up\"],\n" +
+      "}";
+  }
+
+  function setStatus(html, bad) {
+    var s = $("status");
+    s.innerHTML = html;
+    s.parentElement.classList.toggle("warn", !!bad);
+  }
+
+  function opaqueRatio(cv) {
+    var d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    var n = 0;
+    for (var i = 3; i < d.length; i += 4) if (d[i] > 18) n++;
+    return n / (cv.width * cv.height);
+  }
+
+  function renderGrid(parsed) {
+    var host = $("frames");
+    host.innerHTML = "";
+    var dirNames = ["down", "left", "right", "up"];
+    dirNames.forEach(function (dir) {
+      parsed.frames[dir].forEach(function (frame, i) {
+        var cell = document.createElement("div");
+        cell.className = "cell";
+        var label = document.createElement("span");
+        label.textContent = dir.toUpperCase() + " " + (i + 1);
+        var c = document.createElement("canvas");
+        c.width = frame.width;
+        c.height = frame.height;
+        c.getContext("2d").drawImage(frame, 0, 0);
+        cell.appendChild(c);
+        cell.appendChild(label);
+        host.appendChild(cell);
+      });
+    });
+  }
+
+  function renderPortrait(img) {
+    var cv = $("portrait");
+    var g = cv.getContext("2d");
+    g.clearRect(0, 0, cv.width, cv.height);
+    var p = window.Sprites.buildPortraitFromSheet(img, opts());
+    if (!p) { g.fillStyle = "#0b0f16"; g.fillRect(0, 0, cv.width, cv.height); return; }
+    g.imageSmoothingEnabled = true;
+    g.drawImage(p, 0, 0, cv.width, cv.height);
+  }
+
+  function render() {
+    if (!current) return;
+    var parsed;
+    try {
+      parsed = window.Sprites.parseSheet(current, opts());
+    } catch (e) {
+      setStatus("<i>" + e.message + "</i>", true);
+      return;
+    }
+    var dirs = ["down", "left", "right", "up"];
+    var missing = dirs.filter(function (d) { return !parsed.frames[d].length; });
+    if (missing.length) {
+      setStatus("<i>No frames found for: " + missing.join(", ") + ". Is the PNG a full 4&times;4 grid?</i>", true);
+    } else {
+      var worst = 0;
+      dirs.forEach(function (d) {
+        worst = Math.max(worst, opaqueRatio(parsed.frames[d][0]));
+      });
+      var msg = "<b>OK</b> — cell " + parsed.cellW + "&times;" + parsed.cellH +
+        " &middot; scale " + parsed.scale.toFixed(3) +
+        " &middot; frame 32&times;48";
+      if (worst > 0.85) {
+        msg += " &middot; <i>background still looks opaque — raise the threshold</i>";
+      }
+      setStatus(msg, worst > 0.85);
+    }
+    renderGrid(parsed);
+    renderPortrait(current);
+    snippet();
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      current = img;
+      $("drop-text").innerHTML = file.name + "<br>" + img.naturalWidth + " &times; " + img.naturalHeight + " px";
+      render();
+    };
+    img.onerror = function () { setStatus("<i>That file could not be decoded as an image.</i>", true); };
+    img.src = url;
+  }
+
+  /* synthetic sheet so the tool is testable without a real file */
+  function sampleSheet() {
+    var cw = 256, ch = 384;
+    var sheet = document.createElement("canvas");
+    sheet.width = cw * 4;
+    sheet.height = ch * 4;
+    var g = sheet.getContext("2d");
+    g.fillStyle = "#000";
+    g.fillRect(0, 0, sheet.width, sheet.height);
+    for (var row = 0; row < 4; row++) {
+      for (var col = 0; col < 4; col++) {
+        var x = col * cw, y = row * ch, shift = col * 6;
+        g.fillStyle = "#c68b5f"; g.fillRect(x + 78 + shift, y + 52, 100, 120);
+        g.fillStyle = "#dda57c"; g.fillRect(x + 92 + shift, y + 70, 72, 70);
+        g.fillStyle = "#14161b"; g.fillRect(x + 66 + shift, y + 180, 124, 120);
+        g.fillStyle = "#1a1d25"; g.fillRect(x + 80 + shift, y + 300, 40, 60);
+        g.fillStyle = "#1a1d25"; g.fillRect(x + 136 + shift, y + 300, 40, 60);
+      }
+    }
+    var img = new Image();
+    img.onload = function () {
+      current = img;
+      $("drop-text").innerHTML = "sample sheet<br>" + img.width + " &times; " + img.height + " px";
+      $("status").parentElement.classList.remove("warn");
+      render();
+    };
+    img.src = sheet.toDataURL("image/png");
+  }
+
+  /* static or animated preview */
+  function drawAnim() {
+    ["down", "left", "right", "up"].forEach(function (dir) {
+      var cv = $("anim-" + dir);
+      var g = cv.getContext("2d");
+      g.imageSmoothingEnabled = false;
+      g.clearRect(0, 0, cv.width, cv.height);
+      var set = current && current.__frames && current.__frames[dir];
+      if (!set || !set.length) return;
+      g.drawImage(set[frameIndex % set.length], 0, 0, cv.width, cv.height);
+    });
+  }
+
+  var last = 0;
+  function tick(ts) {
+    requestAnimationFrame(tick);
+    if (!current || !current.__frames || !$("anim").checked) return;
+    if (ts - last < 130) return;
+    last = ts;
+    frameIndex = (frameIndex + 1) % 4;
+    drawAnim();
+  }
+
+  /* keep a parsed copy for the preview canvases and paint once right away,
+     so the tool still shows frames when animation frames are throttled */
+  var baseRender = render;
+  render = function () {
+    baseRender();
+    if (!current) return;
+    try {
+      current.__frames = window.Sprites.parseSheet(current, opts()).frames;
+      drawAnim();
+    } catch (e) {}
+  };
+
+  $("file").addEventListener("change", function (e) { loadFile(e.target.files[0]); });
+  var drop = $("drop");
+  ["dragenter", "dragover"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("is-over"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("is-over"); });
+  });
+  drop.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+
+  $("load-sample").addEventListener("click", sampleSheet);
+  $("reset").addEventListener("click", function () {
+    current = null;
+    $("frames").innerHTML = "";
+    $("drop-text").innerHTML = "CLICK OR DROP A PNG HERE<br>4 columns &times; 4 rows";
+    setStatus("Waiting for a file&hellip;");
+    ["down", "left", "right", "up"].forEach(function (d) {
+      var cv = $("anim-" + d);
+      cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+    });
+    var p = $("portrait").getContext("2d");
+    p.clearRect(0, 0, 96, 96);
+  });
+
+  ["h", "thr"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      $(id + "-out").textContent = $(id).value;
+      render();
+    });
+  });
+  ["smooth", "key", "swap"].forEach(function (id) { $(id).addEventListener("change", render); });
+
+  snippet();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
