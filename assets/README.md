@@ -6,7 +6,7 @@ Drop the two generated PNG files here with these exact names:
 | --- | --- |
 | `mohamed-spritesheet.png` | Mohamed Nasr — 4x4 walk sheet |
 | `visitor-spritesheet.png` | The playable visitor — 4x4 walk sheet |
-| `mohamed-portrait.png` | Optional. Dialogue portrait, square PNG. If it is missing, the portrait is cropped from the top of Mohamed's front frame. |
+| `mohamed-portrait.png` | Optional. Dialogue portrait, square PNG. Leave `sprites.npcPortrait` as `null` and the portrait is cropped from the top of Mohamed's front frame instead. |
 
 ## Sheet rules the loader expects
 

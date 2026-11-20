@@ -317,7 +317,7 @@ window.PORTFOLIO = {
   sprites: {
     npcSheet: "assets/mohamed-spritesheet.png",
     playerSheet: "assets/visitor-spritesheet.png",
-    npcPortrait: "assets/mohamed-portrait.png",
+    npcPortrait: null, // optional square portrait PNG; null = crop Mohamed's front frame
     targetHeight: 40,
     smoothing: false,  // true = soft (painted sheets), false = crisp pixels
     keyBlack: "auto",  // "auto" | "never": remove an opaque black background
