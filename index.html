@@ -61,6 +61,11 @@
             </button>
           </div>
 
+          <button class="chip chip--secret" id="btn-secrets" type="button" title="Seven secrets are hidden in this room">
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M8 1l1.9 4.2 4.6.5-3.4 3.1.9 4.6L8 11.2 4 13.4l.9-4.6L1.5 5.7l4.6-.5L8 1z"/></svg>
+            <span>SECRETS</span><b id="secret-count" data-count>0/7</b>
+          </button>
+
           <div class="dpad" id="dpad" aria-label="Touch movement controls">
             <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Move up">▲</button>
             <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Move left">◀</button>
@@ -128,12 +133,13 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/config.js?v=10"></script>
-<script src="js/pixel-font.js?v=10"></script>
-<script src="js/sprites.js?v=10"></script>
-<script src="js/room.js?v=10"></script>
-<script src="js/audio.js?v=10"></script>
-<script src="js/ui.js?v=10"></script>
-<script src="js/game.js?v=10"></script>
+<script src="js/config.js?v=15"></script>
+<script src="js/pixel-font.js?v=15"></script>
+<script src="js/sprites.js?v=15"></script>
+<script src="js/room.js?v=15"></script>
+<script src="js/audio.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
+<script src="js/secrets.js?v=15"></script>
+<script src="js/game.js?v=15"></script>
 </body>
 </html>

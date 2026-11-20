@@ -33,6 +33,7 @@ window.UI = (function () {
     contact: "MAIL.EXE",
     resume: "RESUME.PDF",
     help: "HOW_TO_PLAY.TXT",
+    secrets: "SECRETS.TXT",
   };
 
   /* ---------------------------------------------------------------- */
@@ -646,13 +647,23 @@ window.UI = (function () {
         '<div class="help-item"><kbd>ESC</kbd><p>Close any window or conversation.</p></div>' +
         '<div class="help-item"><kbd>TAP</kbd><p>On mobile, use the D-pad and the A button. Tap objects to walk to them.</p></div>' +
         '<div class="help-item"><kbd>?</kbd><p>This window. Reopen it any time from the corner.</p></div>' +
+        '<div class="help-item"><kbd>★</kbd><p>Seven secrets are hidden in this room. The SECRETS chip in the top-left corner keeps score and holds the hints.</p></div>' +
       "</div>" +
-      '<p class="muted small">Everything you see is drawn procedurally on a 384×224 canvas: no sprite sheets, no external images. Audio is synthesised with WebAudio.</p>';
+      '<p class="muted small">The room, the furniture and the characters are drawn on a 384×224 canvas — the characters come from hand-drawn sprite sheets, with the built-in pixel art as a fallback. Audio is synthesised with WebAudio.</p>';
   }
 
   /* ---------------------------------------------------------------- */
   /* Window shell                                                      */
   /* ---------------------------------------------------------------- */
+  function buildSecrets() {
+    if (!window.Secrets) return;
+    modalBody.innerHTML = window.Secrets.panelHTML();
+  }
+
+  function refreshSecrets() {
+    if (modalType === "secrets") buildSecrets();
+  }
+
   function openModal(type) {
     if (dlg.open) closeDialogue();
     modalType = type;
@@ -671,6 +682,7 @@ window.UI = (function () {
     else if (type === "contact") buildContact();
     else if (type === "resume") buildResume();
     else if (type === "help") buildHelp();
+    else if (type === "secrets") buildSecrets();
 
     modalBody.scrollTop = 0;
     overlay.classList.remove("is-in");
@@ -812,6 +824,7 @@ window.UI = (function () {
     closeDialogue: closeDialogue,
     openModal: openModal,
     closeModal: closeModal,
+    refreshSecrets: refreshSecrets,
     isBlocking: isBlocking,
     toast: toast,
     copyText: copyText,

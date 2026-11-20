@@ -410,6 +410,106 @@ body.is-booting .brand-avatar { visibility: hidden; }
   font-weight: 700;
 }
 
+/* Secrets chip + window ------------------------------------------- */
+.chip--secret {
+  border-color: rgba(255, 180, 84, 0.5);
+  color: #e3c79a;
+}
+.chip--secret b { color: var(--amber); }
+.chip--secret.is-complete {
+  border-color: rgba(110, 231, 199, 0.75);
+  color: var(--mint);
+  background: rgba(16, 38, 33, 0.75);
+  animation: secret-glow 2.4s ease-in-out infinite;
+}
+.chip--secret.is-complete b { color: #ffffff; }
+
+@keyframes secret-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(110, 231, 199, 0); }
+  50% { box-shadow: 0 0 12px rgba(110, 231, 199, 0.4); }
+}
+
+#brand-avatar { cursor: pointer; }
+
+.sec-top { margin-bottom: 16px; }
+.sec-lede { margin: 0 0 12px; color: #aeb9cb; font-size: 13px; line-height: 1.6; }
+.sec-meter {
+  height: 8px;
+  background: #0b0f16;
+  border: 1px solid var(--line-2);
+  overflow: hidden;
+}
+.sec-meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffb454, #6ee7c7);
+  transition: width 0.4s ease;
+}
+.sec-count {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.sec-count b { color: var(--mint); }
+
+.sec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sec {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 13px;
+  background: #0c1119;
+  border: 1px solid var(--line);
+}
+.sec-mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: #5c6a80;
+  border: 1px solid var(--line-2);
+  background: #0a0e15;
+}
+.sec.is-found { border-color: rgba(110, 231, 199, 0.42); background: #0d1a1a; }
+.sec.is-found .sec-mark { color: var(--amber); border-color: rgba(255, 180, 84, 0.5); }
+.sec-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sec-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #6f7c90;
+}
+.sec.is-found .sec-name { color: var(--mint); }
+.sec-hint { font-size: 12.5px; color: #8e98a8; line-height: 1.55; }
+.sec.is-found .sec-hint { color: #7f8c9f; }
+
+.sec-final {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 180, 84, 0.55);
+  background: rgba(38, 26, 12, 0.6);
+  color: var(--amber);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.sec-note {
+  margin: 14px 0 0;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: #4c5768;
+  text-transform: uppercase;
+}
+
+/* the room notices a completionist */
+body.is-legend .cabinet { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.62), 0 0 90px rgba(255, 180, 84, 0.22); }
+body.is-legend .brand-name { color: #ffe0ad; text-shadow: 0 0 14px rgba(255, 180, 84, 0.45); }
+
 /* D-pad */
 .dpad {
   display: none;

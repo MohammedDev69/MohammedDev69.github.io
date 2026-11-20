@@ -10,6 +10,9 @@ window.Room = (function () {
   var interactables = [];
   var dust = [];
   var steam = [];
+  var lights = true;      /* the desk lamp switch (NIGHT OWL secret) */
+  var dark = null;
+  var focus = null;       /* the visitor's lantern in the dark */
 
   /* ---------------------------------------------------------------- */
   function px(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(x | 0, y | 0, w | 0, h | 0); }
@@ -562,6 +565,36 @@ window.Room = (function () {
     });
   }
 
+  /* The octocat, once the header avatar has been poked enough times.
+     It just sits on the floor by the desk and stares. */
+  function buildOctocat() {
+    return bake(300, 168, 34, 30, function (g) {
+      ellipse(g, 316, 194, 11, 3, "rgba(0,0,0,0.26)");
+      var body = "#5b4a75", body2 = "#6d5a8b", face = "#e9e5dd";
+      var cx = 316, cy = 180;
+      /* head */
+      ellipse(g, cx, cy - 8, 7, 6, body);
+      ellipse(g, cx, cy - 8, 6, 5, body2);
+      /* tentacle legs */
+      for (var i = 0; i < 3; i++) {
+        px(g, cx - 6 + i * 4, cy - 2, 3, 6, body);
+        px(g, cx - 6 + i * 4, cy + 3, 3, 2, body2);
+      }
+      /* arms */
+      px(g, cx - 9, cy - 6, 3, 2, body);
+      px(g, cx + 7, cy - 6, 3, 2, body);
+      /* face */
+      px(g, cx - 4, cy - 10, 2, 2, "#241c33");
+      px(g, cx + 2, cy - 10, 2, 2, "#241c33");
+      px(g, cx - 4, cy - 10, 1, 1, face);
+      px(g, cx + 2, cy - 10, 1, 1, face);
+      px(g, cx - 2, cy - 6, 4, 1, "#241c33");
+      /* cat ears on top of the octopus head */
+      px(g, cx - 6, cy - 15, 2, 2, body);
+      px(g, cx + 4, cy - 15, 2, 2, body);
+    });
+  }
+
   function buildProps() {
     var shelf = buildBookshelf();
     var desk = buildDesk();
@@ -569,6 +602,7 @@ window.Room = (function () {
     var plant = buildPlant();
     var mailbox = buildMailbox();
     var cat = buildCat();
+    var octo = buildOctocat();
 
     props = [
       { y: 96, draw: function (ctx) { ctx.drawImage(shelf.canvas, shelf.x, shelf.y); } },
@@ -580,10 +614,24 @@ window.Room = (function () {
           drawSteam(ctx, t);
         },
       },
-      { y: 150, draw: function (ctx) { ctx.drawImage(lamp.canvas, lamp.x, lamp.y); } },
+      {
+        y: 150,
+        draw: function (ctx, t) {
+          ctx.drawImage(lamp.canvas, lamp.x, lamp.y);
+          if (!lights) return;
+          /* the bulb shows through when the room is dark */
+          var flick = Math.sin(t * 9) > 0.85 ? 0 : 1;
+          ctx.globalAlpha = 0.5 + flick * 0.4;
+          ctx.fillStyle = "#ffe6b0";
+          ctx.fillRect(lamp.x + 15, lamp.y + 6, 4, 3);
+          ctx.globalAlpha = 1;
+        },
+      },
       {
         y: 168,
         draw: function (ctx, t) {
+          /* the cat only sleeps here until it decides to follow you */
+          if (window.Secrets && window.Secrets.has("cat")) return;
           var breathe = Math.sin(t * 1.6) > 0 ? 1 : 0;
           ctx.save();
           ctx.translate(0, -breathe);
@@ -591,9 +639,62 @@ window.Room = (function () {
           ctx.restore();
         },
       },
+      {
+        y: 194,
+        draw: function (ctx) {
+          if (window.Secrets && window.Secrets.has("octocat")) {
+            ctx.drawImage(octo.canvas, octo.x, octo.y);
+          }
+        },
+      },
       { y: 180, draw: function (ctx) { ctx.drawImage(plant.canvas, plant.x, plant.y); } },
       { y: 212, draw: function (ctx) { ctx.drawImage(mailbox.canvas, mailbox.x, mailbox.y); } },
     ];
+  }
+
+  /* The awake cat: a small side-on walker with a tail that never sits still. */
+  function drawCat(ctx, x, y, dir, frame, t) {
+    var back = dir === "up";
+    var c = "#454552", d = "#33333d", lite = "#52525f";
+    var bx = Math.round(x) - 9, by = Math.round(y) - 11;
+    var step = frame % 2 === 0 ? 0 : 1;
+
+    /* shadow */
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = "#05060a";
+    ctx.beginPath();
+    ctx.ellipse(Math.round(x), Math.round(y) - 1, 8, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    /* body */
+    ctx.fillStyle = c;
+    ctx.fillRect(bx + 2, by + 5, 12, 5);
+    ctx.fillStyle = d;
+    ctx.fillRect(bx + 2, by + 9, 12, 1);
+    /* legs */
+    ctx.fillStyle = d;
+    ctx.fillRect(bx + 3, by + 10, 2, 1 + step);
+    ctx.fillRect(bx + 11, by + 10, 2, 2 - step);
+    /* head */
+    ctx.fillStyle = c;
+    ctx.fillRect(bx + (dir === "left" ? 0 : 11), by + 1, 6, 5);
+    ctx.fillStyle = lite;
+    ctx.fillRect(bx + (dir === "left" ? 1 : 12), by + 2, 4, 3);
+    /* ears */
+    ctx.fillStyle = d;
+    ctx.fillRect(bx + (dir === "left" ? 1 : 12), by, 2, 2);
+    ctx.fillRect(bx + (dir === "left" ? 4 : 15), by, 2, 2);
+    /* tail, wagging */
+    var wag = Math.round(Math.sin(t * 6) * 1.5);
+    ctx.fillStyle = d;
+    ctx.fillRect(bx + (dir === "left" ? 13 : -1), by + 4 + wag, 2, 1);
+    ctx.fillRect(bx + (dir === "left" ? 14 : -2), by + 3 + wag, 2, 1);
+    if (!back) {
+      ctx.fillStyle = "#1d1d24";
+      ctx.fillRect(bx + (dir === "left" ? 1 : 14), by + 3, 1, 1);
+      ctx.fillRect(bx + (dir === "left" ? 4 : 15), by + 3, 1, 1);
+    }
   }
 
   /* ---- live screen content ---------------------------------------- */
@@ -696,6 +797,35 @@ window.Room = (function () {
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, H);
 
+    /* lights out: a dark sheet with holes punched over the lamp and monitors.
+       It is built offscreen so the room pixels are dimmed, never erased. */
+    if (!lights && dark) {
+      var dg = dark.canvas.getContext("2d");
+      dg.clearRect(0, 0, W, H);
+      dg.globalCompositeOperation = "source-over";
+      dg.fillStyle = "rgba(3,4,9,0.84)";
+      dg.fillRect(0, 0, W, H);
+      dg.globalCompositeOperation = "destination-out";
+      var pools = [
+        { x: 104, y: 118, r: 74, a: 0.92 },
+        { x: 216, y: 40, r: 96, a: 0.72 },
+        { x: 250, y: 30, r: 46, a: 0.5 },
+      ];
+      /* a soft lantern around the visitor, so the room stays playable */
+      if (focus) pools.push({ x: focus.x, y: focus.y, r: 58, a: 0.62 });
+      for (var p = 0; p < pools.length; p++) {
+        var pool = pools[p];
+        var rg = dg.createRadialGradient(pool.x, pool.y, 2, pool.x, pool.y, pool.r);
+        rg.addColorStop(0, "rgba(0,0,0," + pool.a + ")");
+        rg.addColorStop(0.55, "rgba(0,0,0," + pool.a * 0.45 + ")");
+        rg.addColorStop(1, "rgba(0,0,0,0)");
+        dg.fillStyle = rg;
+        dg.fillRect(pool.x - pool.r, pool.y - pool.r, pool.r * 2, pool.r * 2);
+      }
+      dg.globalCompositeOperation = "source-over";
+      ctx.drawImage(dark.canvas, 0, 0);
+    }
+
     /* dust */
     ctx.fillStyle = "#ffe9c4";
     for (var i = 0; i < dust.length; i++) {
@@ -735,6 +865,7 @@ window.Room = (function () {
     init: function () {
       bg = buildBackground();
       buildProps();
+      dark = bake(0, 0, W, H, function (g) { g.clearRect(0, 0, W, H); });
 
       dust = [];
       for (var i = 0; i < 26; i++) {
@@ -802,11 +933,22 @@ window.Room = (function () {
           stand: { x: 248, y: 178 },
           prompt: { x: 247, y: 146 },
         },
+        {
+          id: "lamp", name: "DESK LAMP", label: "SWITCH",
+          hit: { x: 88, y: 92, w: 34, h: 56 },
+          zone: { x: 82, y: 128, w: 48, h: 34 },
+          stand: { x: 103, y: 158 },
+          prompt: { x: 105, y: 104 },
+        },
       ];
     },
     drawBase: function (ctx) { ctx.drawImage(bg.canvas, 0, 0); },
     update: update,
     drawOverlay: drawOverlay,
+    drawCat: drawCat,
+    setLights: function (on) { lights = !!on; },
+    isLightsOn: function () { return lights; },
+    setFocus: function (x, y) { focus = { x: x, y: y }; },
   };
 
   return api;

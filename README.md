@@ -41,6 +41,7 @@ js/pixel-font.js    5x7 bitmap font drawn with fillRect
 js/sprites.js       procedural pixel characters + PNG sprite-sheet importer
 js/room.js          baked room art, furniture, lighting, particles
 js/game.js          loop, movement, collision, interactions, rendering order
+js/secrets.js       the seven easter eggs: triggers, progress, SECRETS window
 js/audio.js         WebAudio chiptune loop and sound effects
 assets/             optional hand-drawn character sheets (see assets/README.md)
 tools/sprite-lab.html  dev-only sheet preview: slices, walk cycle, portrait
@@ -59,6 +60,7 @@ Everything the site says lives in `js/config.js`:
 - `contact` — mailbox rows
 - `resume` — summary, highlights and selected projects
 - `sprites` — character sheet paths and import options
+- `secrets` — the seven easter eggs: their names and the hints shown while locked
 
 Projects are fetched live from
 `https://api.github.com/users/MohammedDev69/repos` and cached in
@@ -83,6 +85,27 @@ The room stays behind a short boot screen until the sheet art is resolved, so
 the built-in characters are never shown first and the art never visibly swaps.
 If the files are missing or fail to load, the boot screen clears anyway and the
 built-in characters are used — the site can never get stuck loading.
+
+## Easter eggs
+
+Seven secrets are hidden in the room and tracked by the SECRETS chip in the
+top-left HUD. Progress is stored in `localStorage`, and the chip opens a window
+that lists what is still missing with a hint for each.
+
+| Secret | Trigger | Reward |
+| --- | --- | --- |
+| DEV MODE | Konami code: ↑↑↓↓←→←→BA | Collision boxes, interaction zones, stand points and a live FPS/position readout |
+| CAT PERSON | Pet the sleeping cat five times | The cat wakes up and follows you around |
+| NIGHT OWL | Switch the desk lamp off | The room goes dark, lit only by the lamp and the monitors |
+| RECRUITER DETECTED | Type `hire` | Hearts, and a very obvious hint |
+| STILL HERE? | Stand still for 30 seconds | The visitor yawns |
+| OCTOCAT | Poke the header avatar seven times | An octocat moves in next to the desk |
+| MARATHON | Walk 2000 pixels | A permanent speed boost |
+
+Find all seven and the room calls Mohamed LV.100, which the dialogue window
+picks up. Triggers, names and hints all live in the `secrets` block of
+`js/config.js`; the logic is in `js/secrets.js` and the rewards in
+`js/game.js` (`onSecret`).
 
 ## Accessibility and quality floor
 

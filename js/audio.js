@@ -154,6 +154,30 @@ window.Audio8 = (function () {
       case "step":
         tone(150, t, 0.02, "triangle", 0.02);
         break;
+      case "secret":
+        tone(880, t, 0.07, "square", 0.06);
+        tone(1174, t + 0.08, 0.07, "square", 0.06);
+        tone(1568, t + 0.16, 0.14, "square", 0.05);
+        break;
+      case "fanfare":
+        tone(523, t, 0.10, "square", 0.06);
+        tone(659, t + 0.11, 0.10, "square", 0.06);
+        tone(784, t + 0.22, 0.10, "square", 0.06);
+        tone(1046, t + 0.33, 0.26, "square", 0.06);
+        tone(1568, t + 0.34, 0.28, "triangle", 0.05);
+        break;
+      case "meow":
+        tone(700, t, 0.09, "triangle", 0.05, null, 950);
+        tone(950, t + 0.10, 0.13, "triangle", 0.04, null, 560);
+        break;
+      case "power":
+        tone(240, t, 0.09, "square", 0.05, null, 120);
+        tone(120, t + 0.10, 0.12, "square", 0.04);
+        break;
+      case "yawn":
+        tone(520, t, 0.22, "triangle", 0.04, null, 300);
+        tone(330, t + 0.24, 0.30, "triangle", 0.04, null, 190);
+        break;
     }
   }
 

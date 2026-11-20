@@ -17,9 +17,16 @@ window.Game = (function () {
   var MIN_BOOT_MS = 450;      /* keeps the boot screen from blinking away */
   var BOOT_TIMEOUT_MS = 6000; /* never hold the room hostage to a slow file */
 
+  var parts = [];             /* hearts, sparks, confetti */
+  var pet = null;             /* the cat, once it follows you */
+  var emote = null;           /* the little bubble above the visitor */
+  var legend = false;         /* every secret found */
+  var lastDt = 0.016;         /* for the DEV MODE readout */
+
   var player = {
     x: 192, y: 190, dir: "up", moving: false, frame: 0, anim: 0, speed: 64,
   };
+  var BASE_SPEED = 64;
   var npc = { x: 301, y: 112, dir: "down" };
 
   /* ---------------------------------------------------------------- */
@@ -127,6 +134,225 @@ window.Game = (function () {
 
     active = uiPaused ? null : nearest();
     updateCursor();
+
+    updatePet(dt);
+    updateParts(dt);
+    if (window.Secrets && window.Secrets.tick) {
+      window.Secrets.tick(dt, player.x, player.y, player.moving, uiPaused);
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Little effects: hearts for a recruiter, sparks for secrets,        */
+  /* confetti for finishing everything.                                */
+  function spawn(n, x, y, kind) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2;
+      var sp = 14 + Math.random() * 40;
+      parts.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y - 12 + (Math.random() - 0.5) * 8,
+        vx: Math.cos(a) * sp * 0.5,
+        vy: -Math.abs(Math.sin(a)) * sp - 12,
+        life: 0,
+        max: 0.9 + Math.random() * 0.8,
+        kind: kind,
+        c: kind === "heart" ? "#ff6b8a" : kind === "confetti"
+          ? ["#ffb454", "#6ee7c7", "#7aa2f7", "#bb9af7", "#e9e5dd"][i % 5]
+          : "#ffd479",
+      });
+    }
+  }
+
+  function updateParts(dt) {
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      p.life += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 26 * dt;
+      if (p.life >= p.max) parts.splice(i, 1);
+    }
+  }
+
+  function drawParts() {
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var k = 1 - p.life / p.max;
+      var x = Math.round(p.x), y = Math.round(p.y);
+      ctx.globalAlpha = Math.max(0, Math.min(1, k * 1.4));
+      ctx.fillStyle = p.c;
+      if (p.kind === "heart") {
+        ctx.fillRect(x - 2, y - 1, 2, 2);
+        ctx.fillRect(x + 1, y - 1, 2, 2);
+        ctx.fillRect(x - 3, y - 2, 7, 2);
+        ctx.fillRect(x - 2, y + 1, 5, 1);
+        ctx.fillRect(x - 1, y + 2, 3, 1);
+      } else if (p.kind === "confetti") {
+        ctx.fillRect(x, y, 2, 2);
+        ctx.fillRect(x, y + 2, 1, 1);
+      } else {
+        ctx.fillRect(x, y, 1, 1);
+        ctx.fillRect(x - 1, y, 3, 1);
+        ctx.fillRect(x, y - 1, 1, 3);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* The visitor's own little thought bubble ("zZ", "!", "♥") */
+  function drawEmote() {
+    if (!emote || emote.until <= time) return;
+    var x = Math.round(player.x), y = Math.round(player.y) - 54;
+    ctx.fillStyle = "rgba(6,9,14,0.85)";
+    ctx.fillRect(x - 12, y - 8, 25, 15);
+    ctx.fillStyle = "#ffb454";
+    ctx.fillRect(x - 12, y - 8, 25, 1);
+    ctx.fillRect(x - 12, y + 6, 25, 1);
+    ctx.fillRect(x - 12, y - 8, 1, 15);
+    ctx.fillRect(x + 12, y - 8, 1, 15);
+    ctx.fillRect(x - 2, y + 7, 4, 2);
+    window.PixelFont.draw(ctx, emote.text, x - 11, y - 5, { color: "#e9e5dd" });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* DEV MODE (konami): boxes, zones and numbers, straight from the      */
+  /* data the game actually uses.                                       */
+  function drawDebug() {
+    var i, it;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = "#6ee7c7";
+    ctx.lineWidth = 1;
+    ctx.font = "6px monospace";
+    ctx.fillStyle = "#6ee7c7";
+
+    ctx.beginPath();
+    for (i = 0; i < Room.solids.length; i++) {
+      var s = Room.solids[i];
+      ctx.rect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+    }
+    ctx.stroke();
+
+    for (i = 0; i < Room.interactables.length; i++) {
+      it = Room.interactables[i];
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "#7aa2f7";
+      ctx.fillRect(it.zone.x, it.zone.y, it.zone.w, it.zone.h);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#ff6b6b";
+      ctx.fillRect(it.stand.x - 1, it.stand.y - 1, 3, 3);
+      ctx.fillStyle = "#6ee7c7";
+      ctx.fillRect(it.hit.x, it.hit.y, it.hit.w, 1);
+    }
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#6ee7c7";
+    ctx.fillRect(player.x - 5, player.y - 7, 10, 7);
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#ffb454";
+    ctx.fillRect(player.x - 5, player.y - 7, 10, 7);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    var label = "DEV MODE " + W + "x" + H +
+      " " + Math.round(1 / Math.max(lastDt, 0.001)) + "FPS" +
+      " X" + Math.round(player.x) + " Y" + Math.round(player.y) +
+      " W" + window.Secrets.walked() + "px";
+    var lw = window.PixelFont.width(label) + 6;
+    ctx.fillStyle = "rgba(6,9,14,0.8)";
+    ctx.fillRect(4, 4, lw, 11);
+    ctx.fillStyle = "#6ee7c7";
+    ctx.fillRect(4, 4, lw, 1);
+    window.PixelFont.draw(ctx, label, 7, 6, { color: "#a9f5dd" });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Rewards for the secrets                                            */
+  function wakePet(x, y) {
+    if (pet) return;
+    pet = { x: x, y: y, dir: "down", frame: 0, anim: 0 };
+  }
+
+  function becomeLegend() {
+    if (legend) return;
+    legend = true;
+    document.body.classList.add("is-legend");
+    var lv = document.querySelector(".dlg-lv");
+    if (lv) lv.textContent = "LV. 100";
+  }
+
+  /* Rewards that should still be true after a reload: the follower cat, the
+     speed boost and the LV.100 aura are part of the room now. */
+  function restoreSecrets() {
+    if (!window.Secrets) return;
+    if (window.Secrets.has("cat")) wakePet(226, 162);
+    if (window.Secrets.has("marathon")) player.speed = Math.round(BASE_SPEED * 1.2);
+    if (window.Secrets.complete()) becomeLegend();
+  }
+
+  function onSecret(id) {
+    if (id === "cat") {
+      wakePet(player.x + 12, player.y + 10);
+      spawn(10, player.x, player.y, "spark");
+    } else if (id === "lamp") {
+      spawn(8, 104, 112, "spark");
+    } else if (id === "hire") {
+      spawn(16, player.x, player.y, "heart");
+      emote = { text: "HI!", until: time + 3 };
+    } else if (id === "idle") {
+      emote = { text: "zZ", until: time + 3.4 };
+      if (window.Audio8) window.Audio8.play("yawn");
+    } else if (id === "marathon") {
+      player.speed = Math.round(BASE_SPEED * 1.2);
+      spawn(14, player.x, player.y, "spark");
+    } else if (id === "konami") {
+      spawn(20, player.x, player.y, "confetti");
+    } else if (id === "octocat") {
+      spawn(14, 316, 168, "spark");
+    } else if (id === "all") {
+      becomeLegend();
+      for (var i = 0; i < 4; i++) {
+        spawn(24, 60 + i * 90, 90 + (i % 2) * 40, "confetti");
+      }
+    }
+  }
+
+  function onIdleProgress(left) {
+    /* gentle hint: a thought bubble appears when the egg is close */
+    if (left > 0 && left <= 5 && (!emote || emote.until <= time)) {
+      emote = { text: "hmm", until: time + 1 };
+    }
+  }
+
+  /* The follower cat: trails the visitor, never blocks, never falls behind
+     forever. Simple steering is enough at 384x224. */
+  function updatePet(dt) {
+    if (!pet) return;
+    var dx = player.x - pet.x;
+    var dy = player.y - pet.y - 10;      /* sits a little behind the feet */
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 26) {
+      var sp = 44;
+      var step = Math.min(dist, sp * dt);
+      var nx = pet.x + (dx / dist) * step;
+      var ny = pet.y + (dy / dist) * step;
+      if (!blocked(nx, ny)) { pet.x = nx; pet.y = ny; }
+      else if (!blocked(pet.x, ny)) { pet.y = ny; }
+      else if (!blocked(nx, pet.y)) { pet.x = nx; }
+      if (Math.abs(dx) > Math.abs(dy)) pet.dir = dx > 0 ? "right" : "left";
+      else pet.dir = dy > 0 ? "down" : "up";
+      pet.anim += dt;
+      pet.frame = Math.floor(pet.anim * 8) % 4;
+    } else {
+      pet.frame = 0;
+    }
+  }
+
+  function drawPet() {
+    if (!pet) return;
+    if (!spritesReady) return;
+    Room.drawCat(ctx, pet.x, pet.y, pet.dir, pet.frame, time);
   }
 
   /* ---------------------------------------------------------------- */
@@ -231,13 +457,18 @@ window.Game = (function () {
     if (spritesReady) {
       items.push({ y: npc.y, draw: drawNpc });
       items.push({ y: player.y, draw: drawPlayer });
+      if (pet) items.push({ y: pet.y, draw: drawPet });
     }
     items.sort(function (a, b) { return a.y - b.y; });
     for (var i = 0; i < items.length; i++) items[i].draw(ctx, time);
 
+    Room.setFocus(Math.round(player.x), Math.round(player.y) - 18);
     Room.drawOverlay(ctx, time);
+    drawParts();
     drawWalkTarget();
+    drawEmote();
     drawPrompts();
+    if (window.Secrets && window.Secrets.devMode()) drawDebug();
   }
 
   /* ---------------------------------------------------------------- */
@@ -303,6 +534,7 @@ window.Game = (function () {
     if (!lastTs) lastTs = ts;
     var dt = Math.min(0.05, (ts - lastTs) / 1000);
     lastTs = ts;
+    lastDt = dt;
     if (document.hidden) return;
     time += dt;
     Room.update(dt, time);
@@ -324,8 +556,14 @@ window.Game = (function () {
     } else if (id === "mailbox") {
       UI.openModal("contact");
     } else if (id === "cat") {
-      window.Audio8.play("confirm");
-      UI.toast("*purrrr* — the cat is asleep, but it appreciates the visit.");
+      if (window.Secrets) window.Secrets.poke();
+      else window.Audio8.play("confirm");
+    } else if (id === "lamp") {
+      var on = !Room.isLightsOn();
+      Room.setLights(on);
+      window.Audio8.play("power");
+      UI.toast(on ? "Lights on." : "Lights off — the monitors do the rest.");
+      if (window.Secrets && !window.Secrets.has("lamp")) window.Secrets.unlock("lamp");
     }
   }
 
@@ -489,6 +727,20 @@ window.Game = (function () {
       }
     },
     getPlayer: function () { return player; },
+    interact: function (id) { interact(id); },
+    onSecret: onSecret,
+    onIdleProgress: onIdleProgress,
+    spawn: spawn,
+    debugState: function () {
+      return {
+        ready: spritesReady,
+        pet: pet ? { x: Math.round(pet.x), y: Math.round(pet.y), dir: pet.dir, frame: pet.frame } : null,
+        parts: parts.length,
+        emote: emote ? emote.text : null,
+        legend: legend,
+        speed: player.speed,
+      };
+    },
     init: function () {
       canvas = document.getElementById("game");
       ctx = canvas.getContext("2d");
@@ -500,6 +752,8 @@ window.Game = (function () {
       window.Sprites.build();
       Room.init();
       UI.init();
+      if (window.Secrets) window.Secrets.init();
+      restoreSecrets();
       bindInput();
       drawBrandAvatar();
 

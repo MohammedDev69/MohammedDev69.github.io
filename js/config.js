@@ -327,6 +327,51 @@ window.PORTFOLIO = {
   },
 
   /* ------------------------------------------------------------------ */
+  /* Easter eggs. Seven things happen in this room if you poke at it.
+     `hint` is what the SECRETS window shows while the egg is still locked. */
+  secrets: {
+    banner: "Seven things in this room do something extra. No trophy for finding them — only bragging rights.",
+    finale: "Every secret found. Mohamed is now LV.100 and the room knows it.",
+    entries: [
+      {
+        id: "konami",
+        name: "DEV MODE",
+        hint: "An old cheat code still works here: up, up, down, down, left, right, left, right, B, A.",
+      },
+      {
+        id: "cat",
+        name: "CAT PERSON",
+        hint: "The cat is asleep. Insist — five times.",
+      },
+      {
+        id: "lamp",
+        name: "NIGHT OWL",
+        hint: "The desk lamp has a switch. Walk up to it and press E.",
+      },
+      {
+        id: "hire",
+        name: "RECRUITER DETECTED",
+        hint: "Type the four letters every developer wants to read.",
+      },
+      {
+        id: "idle",
+        name: "STILL HERE?",
+        hint: "Stop moving for half a minute and watch yourself.",
+      },
+      {
+        id: "octocat",
+        name: "OCTOCAT",
+        hint: "Poke the avatar in the header until it gives in.",
+      },
+      {
+        id: "marathon",
+        name: "MARATHON",
+        hint: "Walk 2000 pixels. Yes, it is a lot of steps.",
+      },
+    ],
+  },
+
+  /* ------------------------------------------------------------------ */
   github: {
     username: "MohammedDev69",
     profileUrl: "https://github.com/MohammedDev69",
