@@ -13,6 +13,9 @@ window.Game = (function () {
   var walkTarget = null;
   var pendingInteract = null;
   var steps = 0;
+  var spritesReady = false;   /* flips once the character art source is final */
+  var MIN_BOOT_MS = 450;      /* keeps the boot screen from blinking away */
+  var BOOT_TIMEOUT_MS = 6000; /* never hold the room hostage to a slow file */
 
   var player = {
     x: 192, y: 190, dir: "up", moving: false, frame: 0, anim: 0, speed: 64,
@@ -223,14 +226,75 @@ window.Game = (function () {
     Room.drawBase(ctx);
 
     var items = Room.props.slice();
-    items.push({ y: npc.y, draw: drawNpc });
-    items.push({ y: player.y, draw: drawPlayer });
+    /* only draw the characters once their art source is decided, so the
+       built-in pixel characters are never shown before the sheets */
+    if (spritesReady) {
+      items.push({ y: npc.y, draw: drawNpc });
+      items.push({ y: player.y, draw: drawPlayer });
+    }
     items.sort(function (a, b) { return a.y - b.y; });
     for (var i = 0; i < items.length; i++) items[i].draw(ctx, time);
 
     Room.drawOverlay(ctx, time);
     drawWalkTarget();
     drawPrompts();
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Boot: resolve the character art, then reveal the room.             */
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function reveal() {
+    if (spritesReady) return;
+    spritesReady = true;
+
+    var loader = document.getElementById("stage-loader");
+    if (loader) {
+      loader.classList.add("is-done");
+      loader.setAttribute("aria-hidden", "true");
+      /* drop it from the layout once the fade has had time to run, so the
+         room can never be covered by a stalled transition */
+      setTimeout(function () { loader.classList.add("is-gone"); }, 480);
+    }
+    document.body.classList.remove("is-booting");
+
+    drawBrandAvatar();
+    requestAnimationFrame(loop);
+
+    var seen = false;
+    try { seen = localStorage.getItem("mn_seen_hint") === "1"; } catch (e) {}
+    if (!seen) {
+      UI.toast("Walk with WASD or arrows · press E near anything that glows.");
+      try { localStorage.setItem("mn_seen_hint", "1"); } catch (e) {}
+    }
+  }
+
+  function boot() {
+    var sheets = (window.PORTFOLIO && window.PORTFOLIO.sprites) || {};
+    var hasSheets = !!(sheets.npcSheet || sheets.playerSheet);
+    var hasPortrait = !!sheets.npcPortrait;
+
+    /* nothing configured: the built-in characters are the intended art */
+    if (!hasSheets && !hasPortrait) { reveal(); return; }
+
+    var loaded = false;
+    var load = window.Sprites.loadSheets(sheets)
+      .then(function (v) { loaded = v; return v; })
+      .catch(function () { return false; });
+
+    Promise.race([load, wait(BOOT_TIMEOUT_MS)])
+      .then(function () {
+        if (loaded) {
+          UI.toast("Character sheets loaded.");
+        } else if (window.console && console.warn) {
+          console.warn("[sprites] No sheet files found; using built-in pixel characters.");
+        }
+        /* a custom portrait does not change the room, so do not hold it back */
+        return hasSheets ? wait(MIN_BOOT_MS) : null;
+      })
+      .then(reveal);
   }
 
   /* ---------------------------------------------------------------- */
@@ -431,6 +495,7 @@ window.Game = (function () {
       ctx.imageSmoothingEnabled = false;
       isTouch = window.matchMedia("(pointer: coarse)").matches;
       document.body.classList.toggle("is-touch", isTouch);
+      document.body.classList.add("is-booting");
 
       window.Sprites.build();
       Room.init();
@@ -438,29 +503,10 @@ window.Game = (function () {
       bindInput();
       drawBrandAvatar();
 
-      /* Swap in the hand-drawn sheets when the PNGs are present. */
-      var sheets = (window.PORTFOLIO && window.PORTFOLIO.sprites) || {};
-      if (sheets.npcSheet || sheets.playerSheet || sheets.npcPortrait) {
-        window.Sprites.loadSheets(sheets).then(function (loaded) {
-          drawBrandAvatar();
-          if (loaded) {
-            UI.toast("Character sheets loaded.");
-          } else if (window.console && console.warn) {
-            console.warn("[sprites] No sheet files found; using built-in pixel characters.");
-          }
-        });
-      }
-
-      requestAnimationFrame(loop);
-
-      setTimeout(function () {
-        var seen = false;
-        try { seen = localStorage.getItem("mn_seen_hint") === "1"; } catch (e) {}
-        if (!seen) {
-          UI.toast("Walk with WASD or arrows · press E near anything that glows.");
-          try { localStorage.setItem("mn_seen_hint", "1"); } catch (e) {}
-        }
-      }, 1400);
+      /* Hold the room behind the boot screen until the hand-drawn sheets are
+         either loaded or proved missing. Nothing is painted with the fallback
+         characters first, so the art never visibly swaps. */
+      boot();
     },
   };
 })();

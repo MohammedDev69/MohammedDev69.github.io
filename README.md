@@ -79,6 +79,11 @@ top of his front frame, and `sprites.swapLeftRight` / `sprites.rowOrder` in
 without touching the art. `tools/sprite-lab.html` previews a sheet's slices,
 walk cycle and portrait before it is shipped.
 
+The room stays behind a short boot screen until the sheet art is resolved, so
+the built-in characters are never shown first and the art never visibly swaps.
+If the files are missing or fail to load, the boot screen clears anyway and the
+built-in characters are used — the site can never get stuck loading.
+
 ## Accessibility and quality floor
 
 - Full keyboard play, visible focus rings, `Esc` closes anything.

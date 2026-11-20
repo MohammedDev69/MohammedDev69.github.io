@@ -139,6 +139,10 @@ button { font: inherit; }
   box-shadow: inset 0 0 0 2px #05070a, 0 0 24px rgba(255, 180, 84, 0.10);
 }
 
+/* the header avatar is the same character art: keep it out of sight until
+   the sheets have been resolved too */
+body.is-booting .brand-avatar { visibility: hidden; }
+
 .brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 
 .brand-name {
@@ -304,6 +308,61 @@ button { font: inherit; }
     radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.42) 100%);
   opacity: 0.55;
   z-index: 2;
+}
+
+/* Boot screen: covers the room until the character art is resolved, so the
+   fallback characters are never shown first. ------------------------- */
+.stage-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #05070a;
+  transition: opacity 0.32s ease, visibility 0.32s ease;
+  animation: stage-loader-bail 0.4s linear 12s forwards;
+}
+.stage-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.stage-loader.is-gone { display: none; }
+
+.loader-sprites { display: flex; gap: 6px; }
+.loader-sprites i {
+  width: 7px;
+  height: 7px;
+  background: #ffb454;
+  opacity: 0.22;
+  animation: loader-step 1.05s steps(1, end) infinite;
+}
+.loader-sprites i:nth-child(2) { animation-delay: 0.13s; }
+.loader-sprites i:nth-child(3) { animation-delay: 0.26s; }
+.loader-sprites i:nth-child(4) { animation-delay: 0.39s; }
+
+.loader-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: #8e98a8;
+  text-transform: uppercase;
+}
+
+@keyframes loader-step {
+  0%, 40% { opacity: 1; }
+  41%, 100% { opacity: 0.22; }
+}
+/* if the scripts never start, the room must not stay hidden forever */
+@keyframes stage-loader-bail {
+  to { opacity: 0; visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-sprites i { animation: none; opacity: 0.7; }
 }
 
 /* HUD ----------------------------------------------------------- */
