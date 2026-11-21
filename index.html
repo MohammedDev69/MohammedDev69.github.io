@@ -3,13 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mohamed Nasr — Interactive Portfolio</title>
-<meta name="description" content="A playable pixel-art developer room. Meet Mohamed Nasr, explore projects, tech stack and contact details.">
+<title>Mohamed Nasr — Full-Stack Developer | Interactive Portfolio</title>
+<meta name="description" content="Mohamed Nasr (Tronex) — full-stack developer in Alexandria, Egypt. A playable pixel-art room you can walk through to explore projects, tech stack, experience and contact details.">
+<meta name="author" content="Mohamed Nasr">
 <meta name="theme-color" content="#07080b">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://mohammeddev69.github.io/">
+
+<!-- social cards: LinkedIn, X, Discord, WhatsApp ... -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mohamed Nasr — Interactive Portfolio">
+<meta property="og:title" content="Mohamed Nasr — Full-Stack Developer">
+<meta property="og:description" content="A playable pixel-art room you can walk through: projects, tech stack, experience and contact details. TypeScript, Next.js, NestJS, Supabase, Python.">
+<meta property="og:url" content="https://mohammeddev69.github.io/">
+<meta property="og:image" content="https://mohammeddev69.github.io/assets/og-cover.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pixel-art developer room at night, with the title Mohamed Nasr, Full-Stack Developer.">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="ar_EG">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mohamed Nasr — Full-Stack Developer">
+<meta name="twitter:description" content="A playable pixel-art room you can walk through: projects, tech stack, experience and contact details.">
+<meta name="twitter:image" content="https://mohammeddev69.github.io/assets/og-cover.png">
+<meta name="twitter:image:alt" content="Pixel-art developer room at night with the portfolio title.">
+
+<!-- installable / mobile chrome -->
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a0c11'/%3E%3Crect x='2' y='2' width='5' height='5' fill='%23ffb454'/%3E%3Crect x='9' y='2' width='5' height='5' fill='%23e9e5dd'/%3E%3Crect x='2' y='9' width='5' height='5' fill='%23e9e5dd'/%3E%3Crect x='9' y='9' width='5' height='5' fill='%23ffb454'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="M. Nasr">
+<meta name="application-name" content="M. Nasr">
+
+<!-- structured data: lets search engines show the name, role and links -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Mohamed Nasr",
+  "alternateName": "Tronex",
+  "jobTitle": "Full-Stack Developer",
+  "description": "Full-stack developer building production web platforms, realtime dashboards and automation. TypeScript, Next.js, NestJS, Supabase, Python.",
+  "url": "https://mohammeddev69.github.io/",
+  "image": "https://mohammeddev69.github.io/assets/og-cover.png",
+  "address": { "@type": "PostalAddress", "addressLocality": "Alexandria", "addressCountry": "EG" },
+  "email": "mailto:mohammed1.nasr.elshreef@gmail.com",
+  "knowsLanguage": ["en", "ar"],
+  "sameAs": [
+    "https://github.com/MohammedDev69",
+    "https://www.linkedin.com/in/mohamed-elshreef-dev/"
+  ],
+  "knowsAbout": ["TypeScript", "JavaScript", "Python", "Next.js", "NestJS", "Node.js", "Supabase", "PostgreSQL", "Prisma", "Docker", "GitHub Actions", "Discord bots", "Automation"]
+}
+</script>
+
+<link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body>
+<a class="skip-link" href="#text-version" data-i18n="a11y.skip">Skip to text version</a>
+
+<noscript>
+  <style>
+    .site, .dialogue, .overlay, .toast { display: none !important; }
+    .fallback { display: block !important; }
+    .skip-link { display: none !important; }
+  </style>
+</noscript>
+
 <div class="bg" aria-hidden="true">
   <div class="bg-glow bg-glow--a"></div>
   <div class="bg-glow bg-glow--b"></div>
@@ -22,18 +83,22 @@
     <div class="brand">
       <canvas class="brand-avatar" id="brand-avatar" width="64" height="64" aria-hidden="true"></canvas>
       <div class="brand-text">
-        <span class="brand-name">MOHAMED NASR</span>
-        <span class="brand-sub">FULL-STACK DEVELOPER <i>/</i> ALEXANDRIA, EG</span>
+        <span class="brand-name" data-i18n="brand.name">MOHAMED NASR</span>
+        <span class="brand-sub" data-i18n="brand.sub">FULL-STACK DEVELOPER <i>/</i> ALEXANDRIA, EG</span>
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn--ghost btn--icon" id="btn-github" type="button" aria-label="Open GitHub profile">
+      <div class="lang-toggle" role="group" aria-label="Language" data-i18n-aria="aria.lang">
+        <button class="lang-btn is-active" data-lang="en" type="button" lang="en">EN</button>
+        <button class="lang-btn" data-lang="ar" type="button" lang="ar">ع</button>
+      </div>
+      <button class="btn btn--ghost btn--icon" id="btn-github" type="button" aria-label="Open GitHub profile" data-i18n-aria="aria.github">
         <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.2c-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/></svg>
-        <span>GITHUB</span>
+        <span data-i18n="btn.github">GITHUB</span>
       </button>
       <button class="btn btn--amber" id="btn-resume" type="button">
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 1h5l3 3v11H4V1Zm5 0v4h4M6 8h4v1H6V8Zm0 2h4v1H6v-1Zm0 2h3v1H6v-1Z"/></svg>
-        <span>SKIP TO CLASSIC RESUME</span>
+        <span data-i18n="btn.resume">SKIP TO CLASSIC RESUME</span>
       </button>
     </div>
   </header>
@@ -42,58 +107,59 @@
     <div class="cabinet" id="cabinet">
       <div class="chrome">
         <span class="chrome-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="chrome-title">ROOM.EXE <b>—</b> MOHAMED&nbsp;NASR</span>
-        <span class="chrome-status"><i class="live-dot"></i> ONLINE <b>·</b> <span id="clock">--:--</span> EET</span>
+        <span class="chrome-title" data-i18n="chrome.title">ROOM.EXE <b>—</b> MOHAMED&nbsp;NASR</span>
+        <span class="chrome-status"><i class="live-dot"></i> <span data-i18n="chrome.online">ONLINE</span> <b>·</b> <span id="clock">--:--</span> EET</span>
       </div>
       <div class="screen" id="screen">
         <canvas id="game" width="384" height="224" aria-label="Pixel art developer room. Use WASD or arrow keys to walk and E to interact."></canvas>
         <div class="screen-fx" aria-hidden="true"></div>
 
         <div class="hud hud--left">
-          <div class="audio-toggles" role="group" aria-label="Audio settings">
-            <button class="chip" id="btn-music" type="button" aria-pressed="false" title="Toggle 8-bit music">
+          <div class="audio-toggles" role="group" aria-label="Audio settings" data-i18n-aria="aria.audio">
+            <button class="chip" id="btn-music" type="button" aria-pressed="false" title="Toggle 8-bit music" data-i18n-title="aria.music">
               <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M6 2h6v9.2a2.2 2.2 0 1 1-2-2.19V4.4L8 5v7.2A2.2 2.2 0 1 1 6 10V2Z"/></svg>
-              <span>MUSIC</span><b data-state>OFF</b>
+              <span data-i18n="hud.music">MUSIC</span><b data-state>OFF</b>
             </button>
-            <button class="chip" id="btn-sfx" type="button" aria-pressed="true" title="Toggle sound effects">
+            <button class="chip" id="btn-sfx" type="button" aria-pressed="true" title="Toggle sound effects" data-i18n-title="aria.sfx">
               <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3v10L5 10H2V6Zm9-2a5 5 0 0 1 0 8v-1a4 4 0 0 0 0-6V4Z"/></svg>
-              <span>SFX</span><b data-state>ON</b>
+              <span data-i18n="hud.sfx">SFX</span><b data-state>ON</b>
             </button>
           </div>
 
-          <button class="chip chip--secret" id="btn-secrets" type="button" title="Seven secrets are hidden in this room">
+          <button class="chip chip--secret" id="btn-secrets" type="button" title="Seven secrets are hidden in this room" data-i18n-title="aria.secrets">
             <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M8 1l1.9 4.2 4.6.5-3.4 3.1.9 4.6L8 11.2 4 13.4l.9-4.6L1.5 5.7l4.6-.5L8 1z"/></svg>
-            <span>SECRETS</span><b id="secret-count" data-count>0/7</b>
+            <span data-i18n="hud.secrets">SECRETS</span><b id="secret-count" data-count>0/7</b>
           </button>
-
-          <div class="dpad" id="dpad" aria-label="Touch movement controls">
-            <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Move up">▲</button>
-            <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Move left">◀</button>
-            <button class="dpad-btn dpad-action" data-action="interact" type="button" aria-label="Interact">A</button>
-            <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Move right">▶</button>
-            <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Move down">▼</button>
-          </div>
         </div>
 
         <div class="hud hud--right">
-          <button class="chip chip--square" id="btn-help" type="button" aria-label="How to play" title="How to play">?</button>
+          <button class="chip chip--square" id="btn-help" type="button" aria-label="How to play" title="How to play" data-i18n-aria="aria.howto" data-i18n-title="aria.howto">?</button>
         </div>
 
         <div class="hintbar" id="hintbar">
-          <span class="hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><em>/</em><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> MOVE</span>
+          <span class="hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><em>/</em><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <span data-i18n="hint.move">MOVE</span></span>
           <span class="hint-sep"></span>
-          <span class="hint"><kbd>E</kbd><em>/</em><kbd>ENTER</kbd> TALK &amp; INSPECT</span>
+          <span class="hint"><kbd>E</kbd><em>/</em><kbd>ENTER</kbd> <span data-i18n="hint.talk">TALK &amp; INSPECT</span></span>
         </div>
 
         <div class="stage-loader" id="stage-loader" role="status" aria-live="polite">
           <span class="loader-sprites" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-          <span class="loader-text">LOADING CHARACTERS</span>
+          <span class="loader-text" data-i18n="loader.text">LOADING CHARACTERS</span>
         </div>
       </div>
+      <div class="touch-bar" id="touch-bar">
+        <div class="dpad" id="dpad" aria-label="Touch movement controls">
+          <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Move up" data-i18n-aria="aria.moveUp">▲</button>
+          <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Move left" data-i18n-aria="aria.moveLeft">◀</button>
+          <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Move right" data-i18n-aria="aria.moveRight">▶</button>
+          <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Move down" data-i18n-aria="aria.moveDown">▼</button>
+        </div>
+        <button class="touch-action" data-action="interact" type="button" aria-label="Interact" data-i18n-aria="aria.interact">A</button>
+      </div>
       <div class="cabinet-foot">
-        <span>© <span id="year">2026</span> MOHAMED NASR</span>
-        <span class="cabinet-foot-mid">BUILT WITH CANVAS + VANILLA JS · NO FRAMEWORKS, NO BROKEN IMAGES</span>
-        <span>v1.0.0</span>
+        <span>© <span id="year">2026</span> <span data-i18n="brand.name">MOHAMED NASR</span></span>
+        <span class="cabinet-foot-mid" data-i18n="foot.mid">BUILT WITH CANVAS + VANILLA JS · NO FRAMEWORKS, NO BROKEN IMAGES</span>
+        <span>v1.3.0</span>
       </div>
     </div>
   </section>
@@ -133,13 +199,118 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/config.js?v=17"></script>
-<script src="js/pixel-font.js?v=17"></script>
-<script src="js/sprites.js?v=17"></script>
-<script src="js/room.js?v=17"></script>
-<script src="js/audio.js?v=17"></script>
-<script src="js/ui.js?v=17"></script>
-<script src="js/secrets.js?v=17"></script>
-<script src="js/game.js?v=17"></script>
+<!-- =====================================================================
+     Text version. The room is a canvas, so this is the semantic copy of
+     the same content: it is what a crawler reads, what a screen reader
+     gets, and what a visitor without JavaScript sees. Revealed by the
+     "skip to text version" link, or automatically by the noscript above.
+     ===================================================================== -->
+<article class="fallback" id="text-version" hidden>
+  <header class="fb-head">
+    <h1>Mohamed Nasr <span class="fb-alias">“Tronex”</span></h1>
+    <p class="fb-role">Full-Stack Developer · Alexandria, Egypt</p>
+    <p class="fb-lede">I build web apps, realtime platforms &amp; Discord bots.</p>
+    <p class="fb-avail">Open to work — remote &amp; on-site</p>
+    <p class="fb-links">
+      <a href="mailto:mohammed1.nasr.elshreef@gmail.com">mohammed1.nasr.elshreef@gmail.com</a>
+      <a href="https://www.linkedin.com/in/mohamed-elshreef-dev/">LinkedIn</a>
+      <a href="https://github.com/MohammedDev69">GitHub</a>
+    </p>
+  </header>
+
+  <section>
+    <h2>About</h2>
+    <p>
+      Self-taught full-stack developer shipping complete products since 2022:
+      Next.js + NestJS storefronts, realtime dashboards on Supabase, desktop
+      automation tools and production Discord bots in Node and Python. I own the
+      whole path — schema, typed API, interface, deployment — and care about code
+      that stays maintainable after launch.
+    </p>
+  </section>
+
+  <section>
+    <h2>Experience</h2>
+    <ul class="fb-timeline">
+      <li>
+        <h3>Freelance Full-Stack Developer</h3>
+        <p class="fb-meta">Independent / Remote · 2023 — Present · Alexandria, Egypt</p>
+        <p>End-to-end product work: architecture, typed APIs, frontend, deployment
+          and maintenance.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Selected projects</h2>
+    <ul class="fb-projects">
+      <li>
+        <h3><a href="https://github.com/MohammedDev69/gamers-matrix">gamers-matrix</a></h3>
+        <p class="fb-meta">Next.js · NestJS · Prisma · Supabase · Paymob</p>
+        <p>Digital-goods e-commerce platform with checkout, order management and an
+          admin dashboard inside a Turborepo monorepo.</p>
+      </li>
+      <li>
+        <h3><a href="https://github.com/MohammedDev69/flowmatic">flowmatic</a></h3>
+        <p class="fb-meta">Python · PySide6 · Qt6</p>
+        <p>Visual desktop automation builder: drag-and-drop workflow graph, global
+          hotkeys and a local runner.</p>
+      </li>
+      <li>
+        <h3><a href="https://github.com/MohammedDev69/discord-yt-sub-verifier">discord-yt-sub-verifier</a></h3>
+        <p class="fb-meta">Python · discord.py · OpenCV · Tesseract · Docker</p>
+        <p>Subscription verification bot that reads screenshots with OCR and grants
+          roles automatically.</p>
+      </li>
+      <li>
+        <h3><a href="https://github.com/MohammedDev69/opencode-apikeys">opencode-apikeys</a></h3>
+        <p class="fb-meta">Node.js CLI</p>
+        <p>Zero-dependency CLI that stores multiple API keys per OpenCode provider
+          and switches the active one.</p>
+      </li>
+      <li>
+        <h3><a href="https://github.com/MohammedDev69?tab=repositories">More repositories</a></h3>
+        <p>Discord bot suites, GitHub Actions tooling and automation utilities.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Tech stack</h2>
+    <dl class="fb-stack">
+      <dt>Languages</dt><dd>TypeScript, JavaScript, Python, SQL, HTML/CSS</dd>
+      <dt>Frontend</dt><dd>React, Next.js, Tailwind CSS, Radix/shadcn</dd>
+      <dt>Backend</dt><dd>Node.js, NestJS, Express, Prisma, REST/WebSockets</dd>
+      <dt>Data &amp; cloud</dt><dd>PostgreSQL, Supabase, Neon, Vercel</dd>
+      <dt>Bots &amp; automation</dt><dd>discord.js, discord.py, Playwright, OpenCV/Tesseract, PySide6</dd>
+      <dt>DevOps</dt><dd>Git/GitHub, GitHub Actions, Docker, Linux/Bash, PowerShell</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <ul class="fb-contact">
+      <li><strong>Email:</strong> <a href="mailto:mohammed1.nasr.elshreef@gmail.com">mohammed1.nasr.elshreef@gmail.com</a></li>
+      <li><strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/mohamed-elshreef-dev/">mohamed-elshreef-dev</a></li>
+      <li><strong>GitHub:</strong> <a href="https://github.com/MohammedDev69">@MohammedDev69</a></li>
+      <li><strong>Based in:</strong> Alexandria, Egypt (EET)</li>
+    </ul>
+    <p class="fb-note">The interactive version has a contact window with a copy
+      button, an interactive CV and a printable resume.</p>
+  </section>
+
+  <p class="fb-back"><a href="#top">← Back to the interactive room</a></p>
+</article>
+
+<script src="js/config.js?v=29"></script>
+<script src="js/i18n.js?v=29"></script>
+<script src="js/pixel-font.js?v=29"></script>
+<script src="js/sprites.js?v=29"></script>
+<script src="js/room.js?v=29"></script>
+<script src="js/audio.js?v=29"></script>
+<script src="js/ui.js?v=29"></script>
+<script src="js/secrets.js?v=29"></script>
+<script src="js/onboarding.js?v=29"></script>
+<script src="js/game.js?v=29"></script>
 </body>
 </html>

@@ -4,6 +4,8 @@ window.Secrets = (function () {
   "use strict";
 
   var KEY = "mn_secrets_v1";
+  var I18N = window.I18N;
+  function t(key, vars) { return I18N.t(key, vars); }
   var C = window.PORTFOLIO || {};
   var cfg = C.secrets || {};
   var defs = cfg.entries || [];
@@ -75,8 +77,7 @@ window.Secrets = (function () {
     var n = count();
     if (badgeCount) badgeCount.textContent = n + "/" + total();
     badge.classList.toggle("is-complete", complete());
-    badge.setAttribute("aria-label",
-      "Secrets found: " + n + " of " + total() + ". Opens the secrets window.");
+    badge.setAttribute("aria-label", t("sec.badge", { n: n, total: total() }));
   }
 
   /* ---------------------------------------------------------------- */
@@ -88,14 +89,14 @@ window.Secrets = (function () {
     sound("secret");
 
     var d = def(id);
-    window.UI.toast("★ SECRET " + count() + "/" + total() + " — " + d.name);
+    window.UI.toast(t("sec.toast", { n: count(), total: total(), name: d.name }));
     if (window.UI.refreshSecrets) window.UI.refreshSecrets();
     if (window.Game && window.Game.onSecret) window.Game.onSecret(id);
 
     if (complete()) {
       sound("fanfare");
       window.setTimeout(function () {
-        window.UI.toast("★★ ALL SECRETS FOUND — LV.100 ★★");
+        window.UI.toast(t("sec.toastAll"));
         if (window.Game && window.Game.onSecret) window.Game.onSecret("all");
       }, 1200);
     }
@@ -109,10 +110,10 @@ window.Secrets = (function () {
     var pct = total() ? Math.round((n / total()) * 100) : 0;
     var out = '<div class="sec-top">' +
       '<p class="sec-lede">' + esc(cfg.banner || "") + '</p>' +
-      '<div class="sec-meter" role="img" aria-label="' + pct + ' percent found">' +
+      '<div class="sec-meter" role="img" aria-label="' + esc(t("sec.percent", { n: pct })) + '">' +
         '<span style="width:' + pct + '%"></span></div>' +
-      '<p class="sec-count">' + n + " / " + total() + " found" +
-        (complete() ? ' <b>· 100% COMPLETE</b>' : "") + "</p>" +
+      '<p class="sec-count">' + esc(t("sec.found", { n: n, total: total() })) +
+        (complete() ? ' <b>· ' + esc(t("sec.complete")) + '</b>' : "") + "</p>" +
       '</div><ul class="sec-list">';
 
     for (var i = 0; i < defs.length; i++) {
@@ -121,7 +122,7 @@ window.Secrets = (function () {
       out += '<li class="sec' + (on ? " is-found" : "") + '">' +
         '<span class="sec-mark" aria-hidden="true">' + (on ? "★" : "?") + "</span>" +
         '<div class="sec-body">' +
-          '<b class="sec-name">' + (on ? esc(d.name) : "UNDISCOVERED") + "</b>" +
+          '<b class="sec-name">' + (on ? esc(d.name) : esc(t("sec.undiscovered"))) + "</b>" +
           '<span class="sec-hint">' + esc(d.hint) + "</span>" +
         "</div></li>";
     }
@@ -130,7 +131,7 @@ window.Secrets = (function () {
     if (complete()) {
       out += '<p class="sec-final">' + esc(cfg.finale || "") + "</p>";
     } else {
-      out += '<p class="sec-note">Progress is saved in this browser only.</p>';
+      out += '<p class="sec-note">' + esc(t("sec.note")) + "</p>";
     }
     return out;
   }
@@ -170,7 +171,7 @@ window.Secrets = (function () {
       return;
     }
     sound("meow");
-    window.UI.toast("*purrrrrr*  (" + pokes + "/5)");
+    window.UI.toast(t("sec.purr", { n: pokes }));
   }
 
   /* the header avatar */
@@ -229,8 +230,8 @@ window.Secrets = (function () {
       console.log("%c MOHAMED NASR %c LV.99 — interactive portfolio ",
         "background:#ffb454;color:#141007;font-weight:bold;padding:2px 6px",
         "background:#141b26;color:#6ee7c7;padding:2px 6px");
-      console.log("%cYou opened the console. Respect.\n" +
-        defs.length + " secrets are hidden in this room — open the SECRETS chip in the HUD for hints.",
+      console.log("%c" + t("sec.consoleTitle") + "\n" +
+        t("sec.consoleBody", { n: defs.length }),
         "color:#8e98a8");
     }
   }
@@ -245,6 +246,7 @@ window.Secrets = (function () {
     poke: poke,
     tick: tick,
     panelHTML: panelHTML,
+    paint: paintBadge,
     devMode: function () { return has("konami"); },
     /** remaining seconds of standing still, 0 when the egg is already found */
     idleLeft: function () {

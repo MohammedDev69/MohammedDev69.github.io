@@ -3,6 +3,8 @@ window.Game = (function () {
   "use strict";
 
   var W = 384, H = 224;
+  var I18N = window.I18N;
+  function t(key, vars) { return I18N.t(key, vars); }
   var canvas, ctx;
   var uiPaused = false;
   var lastTs = 0;
@@ -20,6 +22,7 @@ window.Game = (function () {
   var parts = [];             /* hearts, sparks, confetti */
   var pet = null;             /* the cat, once it follows you */
   var emote = null;           /* the little bubble above the visitor */
+  var npcEmote = null;        /* the bubble above Mohamed when he greets you */
   var legend = false;         /* every secret found */
   var lastDt = 0.016;         /* for the DEV MODE readout */
 
@@ -27,7 +30,15 @@ window.Game = (function () {
     x: 192, y: 190, dir: "up", moving: false, frame: 0, anim: 0, speed: 64,
   };
   var BASE_SPEED = 64;
-  var npc = { x: 301, y: 112, dir: "down" };
+  var npc = { x: 301, y: 112, dir: "down", frame: 0, anim: 0, moving: false };
+
+  /* Guided tour state (driven by js/onboarding.js). While a tour runs the room
+     keeps simulating: Mohamed walks himself, the visitor follows on autopilot,
+     the two never collide, and proximity prompts are muted. */
+  var npcPath = null;         /* {x, y} the NPC is walking towards */
+  var npcGhost = false;       /* NPC stops blocking the visitor */
+  var tourMode = false;       /* hides prompts/cursor while Mohamed guides */
+  var tourMove = null;        /* the move currently being awaited */
 
   /* ---------------------------------------------------------------- */
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -47,8 +58,20 @@ window.Game = (function () {
     for (var i = 0; i < solids.length; i++) {
       if (aabb(hb, solids[i])) return true;
     }
-    if (aabb(hb, { x: npc.x - 7, y: npc.y - 7, w: 14, h: 7 })) return true;
+    if (aabb(hb, { x: npc.x - 7, y: npc.y - 7, w: 14, h: 7 }) && !npcGhost) return true;
     return false;
+  }
+
+  /* Same walkable test, but from Mohamed's point of view: he collides with the
+     furniture and with the visitor, never with himself. */
+  function npcBlocked(x, y) {
+    var hb = hitbox(x, y);
+    if (hb.x < 12 || hb.x + hb.w > 372 || hb.y < 56 || hb.y + hb.h > 214) return true;
+    var solids = Room.solids;
+    for (var i = 0; i < solids.length; i++) {
+      if (aabb(hb, solids[i])) return true;
+    }
+    return aabb(hb, hitbox(player.x, player.y));
   }
 
   function moveBy(dx, dy) {
@@ -81,6 +104,94 @@ window.Game = (function () {
       if (d < bestD) { bestD = d; best = list[i]; }
     }
     return bestD <= 0 ? best : null;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Mohamed walking himself: used by the guided tour so he can lead the
+     visitor from station to station. Same collision rules as the player. */
+  function updateNpc(dt) {
+    if (!npcPath) { npc.moving = false; npc.frame = 0; npc.anim = 0; return; }
+
+    var tx = npcPath.x - npc.x;
+    var ty = npcPath.y - npc.y;
+    var dist = Math.sqrt(tx * tx + ty * ty);
+
+    if (dist < 2.5) {
+      npc.x = npcPath.x;
+      npc.y = npcPath.y;
+      npcPath = null;
+      npc.moving = false;
+      npc.frame = 0;
+      npc.anim = 0;
+      return;
+    }
+
+    var speed = BASE_SPEED * 1.35;      /* he leads, so he is a touch faster */
+    var step = Math.min(dist, speed * dt);
+    var nx = npc.x + (tx / dist) * step;
+    var ny = npc.y + (ty / dist) * step;
+
+    if (!npcBlocked(nx, ny)) { npc.x = nx; npc.y = ny; }
+    else if (!npcBlocked(npc.x, ny)) { npc.y = ny; }
+    else if (!npcBlocked(nx, npc.y)) { npc.x = nx; }
+    else {
+      /* wedged: sidestep along the dominant free axis, or give up this frame */
+      if (!npcBlocked(npc.x, npc.y + Math.sign(ty || 1) * 7)) npc.y += Math.sign(ty || 1) * 7;
+      else if (!npcBlocked(npc.x + Math.sign(tx || 1) * 7, npc.y)) npc.x += Math.sign(tx || 1) * 7;
+    }
+
+    npc.dir = Math.abs(tx) > Math.abs(ty) ? (tx > 0 ? "right" : "left")
+      : (ty > 0 ? "down" : "up");
+    npc.moving = true;
+    npc.anim += dt;
+    npc.frame = Math.floor(npc.anim * 9) % 4;
+  }
+
+  /* Finish (or abandon) the move the tour is waiting on. */
+  function endTourMove(forced) {
+    var m = tourMove;
+    if (!m) return;
+    tourMove = null;
+    npcPath = null;
+    walkTarget = null;
+    pendingInteract = null;
+    if (forced) {
+      if (m.npc) {
+        var ns = npcFreeSpot(m.npc.x, m.npc.y);
+        if (ns) { npc.x = ns.x; npc.y = ns.y; }
+      }
+      if (m.player) {
+        var ps = freeSpot(clamp(m.player.x, 16, 368), clamp(m.player.y, 58, 212));
+        if (ps) { player.x = ps.x; player.y = ps.y; }
+      }
+      npc.moving = false;
+      player.moving = false;
+    }
+    npc.frame = 0;
+    npc.anim = 0;
+    if (m.done) m.done(forced);
+  }
+
+  function updateTourMove() {
+    if (!tourMove) return;
+    var npcOk = !tourMove.npc || !npcPath;
+    var playerOk = !tourMove.player || !walkTarget;
+    if (npcOk && playerOk) endTourMove(false);
+    else if (time > tourMove.deadline) endTourMove(true);
+  }
+
+  /* Nearest free standing spot for Mohamed, searched back towards wherever he
+     already is so he never lands inside the furniture. */
+  function npcFreeSpot(x, y) {
+    x = clamp(x, 16, 368);
+    y = clamp(y, 58, 212);
+    if (!npcBlocked(x, y)) return { x: x, y: y };
+    for (var i = 1; i <= 18; i++) {
+      var nx = npc.x + (x - npc.x) * (1 - i / 18);
+      var ny = npc.y + (y - npc.y) * (1 - i / 18);
+      if (!npcBlocked(nx, ny)) return { x: nx, y: ny };
+    }
+    return null;
   }
 
   /* ---------------------------------------------------------------- */
@@ -132,14 +243,17 @@ window.Game = (function () {
       player.anim = 0;
     }
 
-    active = uiPaused ? null : nearest();
+    active = (uiPaused || tourMode) ? null : nearest();
     updateCursor();
+    updateNpc(dt);
 
     updatePet(dt);
     updateParts(dt);
     if (window.Secrets && window.Secrets.tick) {
       window.Secrets.tick(dt, player.x, player.y, player.moving, uiPaused);
     }
+
+    updateTourMove();
   }
 
   /* ---------------------------------------------------------------- */
@@ -200,19 +314,31 @@ window.Game = (function () {
     ctx.globalAlpha = 1;
   }
 
-  /* The visitor's own little thought bubble ("zZ", "!", "♥") */
+  /* A little speech/thought bubble above a character. */
+  function drawBubble(text, cx, cy) {
+    var x = Math.round(cx), y = Math.round(cy);
+    var w = window.PixelFont.width(text) + 13;
+    ctx.fillStyle = "rgba(6,9,14,0.85)";
+    ctx.fillRect(x - Math.round(w / 2), y - 8, w, 15);
+    ctx.fillStyle = "#ffb454";
+    ctx.fillRect(x - Math.round(w / 2), y - 8, w, 1);
+    ctx.fillRect(x - Math.round(w / 2), y + 6, w, 1);
+    ctx.fillRect(x - Math.round(w / 2), y - 8, 1, 15);
+    ctx.fillRect(x - Math.round(w / 2) + w - 1, y - 8, 1, 15);
+    ctx.fillRect(x - 2, y + 7, 4, 2);
+    window.PixelFont.draw(ctx, text, x - Math.round(w / 2) + 6, y - 5, { color: "#e9e5dd" });
+  }
+
+  /* the visitor's own bubble ("zZ", "!", "♥") */
   function drawEmote() {
     if (!emote || emote.until <= time) return;
-    var x = Math.round(player.x), y = Math.round(player.y) - 54;
-    ctx.fillStyle = "rgba(6,9,14,0.85)";
-    ctx.fillRect(x - 12, y - 8, 25, 15);
-    ctx.fillStyle = "#ffb454";
-    ctx.fillRect(x - 12, y - 8, 25, 1);
-    ctx.fillRect(x - 12, y + 6, 25, 1);
-    ctx.fillRect(x - 12, y - 8, 1, 15);
-    ctx.fillRect(x + 12, y - 8, 1, 15);
-    ctx.fillRect(x - 2, y + 7, 4, 2);
-    window.PixelFont.draw(ctx, emote.text, x - 11, y - 5, { color: "#e9e5dd" });
+    drawBubble(emote.text, player.x, Math.round(player.y) - 54);
+  }
+
+  /* Mohamed's bubble — used when he greets you on arrival */
+  function drawNpcEmote() {
+    if (!npcEmote || npcEmote.until <= time) return;
+    drawBubble(npcEmote.text, npc.x, Math.round(npc.y) - 52);
   }
 
   /* ---------------------------------------------------------------- */
@@ -392,14 +518,17 @@ window.Game = (function () {
     var dy = player.y - npc.y;
     var dist = Math.sqrt(dx * dx + dy * dy);
     var dir = npc.dir;
-    if (dist < 84) {
+    /* he looks at the visitor when they are near — but keeps his course while
+       he is walking the tour */
+    if (dist < 84 && !npc.moving) {
       if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? "right" : "left";
       else dir = dy > 0 ? "down" : "up";
     }
-    var bob = Math.sin(time * 1.5) > 0.72 ? -1 : 0;
     var set = frames[dir] || frames.down;
     if (!set || !set.length) return;
-    drawCharacter(set[0], npc.x, npc.y + bob);
+    var frame = npc.moving ? ((npc.frame || 0) % set.length) : 0;
+    var bob = npc.moving ? 0 : (Math.sin(time * 1.5) > 0.72 ? -1 : 0);
+    drawCharacter(set[frame] || set[0], npc.x, npc.y + bob);
   }
 
   /* ---------------------------------------------------------------- */
@@ -473,6 +602,7 @@ window.Game = (function () {
     drawParts();
     drawWalkTarget();
     drawEmote();
+    drawNpcEmote();
     drawPrompts();
     if (window.Secrets && window.Secrets.devMode()) drawDebug();
   }
@@ -500,12 +630,9 @@ window.Game = (function () {
     drawBrandAvatar();
     requestAnimationFrame(loop);
 
-    var seen = false;
-    try { seen = localStorage.getItem("mn_seen_hint") === "1"; } catch (e) {}
-    if (!seen) {
-      UI.toast("Walk with WASD or arrows · press E near anything that glows.");
-      try { localStorage.setItem("mn_seen_hint", "1"); } catch (e) {}
-    }
+    /* Welcome duty belongs to Mohamed, not to a popup: js/onboarding.js
+       listens for this and asks him to greet an arriving visitor. */
+    document.dispatchEvent(new CustomEvent("room:ready"));
   }
 
   function boot() {
@@ -525,7 +652,7 @@ window.Game = (function () {
             console.warn("[sprites] Character sheets did not resolve; the room will " +
               "show up without them.");
           }
-          UI.toast("Character art could not be loaded.");
+          UI.toast(t("toast.artFail"));
         }
         return wait(MIN_BOOT_MS);
       })
@@ -566,7 +693,7 @@ window.Game = (function () {
       var on = !Room.isLightsOn();
       Room.setLights(on);
       window.Audio8.play("power");
-      UI.toast(on ? "Lights on." : "Lights off — the monitors do the rest.");
+      UI.toast(on ? t("toast.lightsOn") : t("toast.lightsOff"));
       if (window.Secrets && !window.Secrets.has("lamp")) window.Secrets.unlock("lamp");
     }
   }
@@ -619,7 +746,7 @@ window.Game = (function () {
 
     window.addEventListener("keydown", function (e) {
       if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-      if (UI.isBlocking()) return;
+      if (UI.isBlocking() || tourMode) return;
       var k = e.key;
       if (moveKeys[k]) {
         keys[moveKeys[k]] = true;
@@ -646,7 +773,7 @@ window.Game = (function () {
 
     /* click / tap to walk and interact */
     canvas.addEventListener("pointerdown", function (e) {
-      if (UI.isBlocking()) return;
+      if (UI.isBlocking() || tourMode) return;
       e.preventDefault();
       var p = toWorld(e);
       var it = hitTest(p.x, p.y);
@@ -699,21 +826,22 @@ window.Game = (function () {
         btn.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
       });
 
-      var action = dpad.querySelector("[data-action]");
-      if (action) {
+      var actions = document.querySelectorAll("[data-action]");
+      Array.prototype.forEach.call(actions, function (action) {
         action.addEventListener("pointerdown", function (ev) {
           ev.preventDefault();
           action.classList.add("is-down");
           if (active) interact(active.id);
-          else UI.toast("Walk closer to an object first.");
+          else UI.toast(t("toast.walkCloser"));
         });
         action.addEventListener("pointerup", function () { action.classList.remove("is-down"); });
         action.addEventListener("pointercancel", function () { action.classList.remove("is-down"); });
-      }
+        action.addEventListener("pointerleave", function () { action.classList.remove("is-down"); });
+      });
     }
 
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !UI.isBlocking()) {
+      if (e.key === "Escape" && !UI.isBlocking() && !tourMode) {
         walkTarget = null;
         pendingInteract = null;
       }
@@ -732,6 +860,70 @@ window.Game = (function () {
     },
     getPlayer: function () { return player; },
     interact: function (id) { interact(id); },
+    /* Mohamed greets the visitor on arrival: he turns towards them and shows a
+       bubble. The conversation itself is a scripted dialogue opened by
+       js/onboarding.js, so the two stay decoupled. */
+    greet: function (bubbleText) {
+      if (uiPaused || spritesReady === false) return false;
+      var dx = player.x - npc.x;
+      var dy = player.y - npc.y;
+      if (Math.abs(dx) > Math.abs(dy)) npc.dir = dx > 0 ? "right" : "left";
+      else npc.dir = dy > 0 ? "down" : "up";
+      npcEmote = { text: bubbleText || "!", until: time + 3.4 };
+      return true;
+    },
+    /* ---- guided tour (js/onboarding.js) ---------------------------- */
+    tour: {
+      /* true while Mohamed is leading: the room keeps running, the visitor
+         does not answer to the keys, and no prompts float around. */
+      set: function (on) {
+        tourMode = !!on;
+        npcGhost = !!on;
+        if (!on) {
+          npcPath = null;
+          tourMove = null;
+          npc.moving = false;
+          npc.frame = 0;
+        }
+      },
+      active: function () { return tourMode; },
+      npc: function () { return { x: Math.round(npc.x), y: Math.round(npc.y), dir: npc.dir }; },
+      player: function () { return { x: Math.round(player.x), y: Math.round(player.y) }; },
+      /* a bubble over Mohamed, e.g. "!" or "..."; null/"" clears it */
+      bubble: function (text, ms) {
+        if (!text) { npcEmote = null; return; }
+        npcEmote = { text: text, until: time + (ms ? ms / 1000 : 2.4) };
+      },
+      /* Walk Mohamed to `npcSpot` and the visitor to `playerSpot`, resolving
+         once either both have arrived or the walk timed out (then both are
+         placed directly, so the tour can never stall). */
+      move: function (npcSpot, playerSpot) {
+        return new Promise(function (resolve) {
+          if (tourMove) endTourMove(true);
+          var m = { npc: npcSpot || null, player: playerSpot || null, done: resolve, deadline: time + 9 };
+          tourMove = m;
+          if (npcSpot) {
+            var ns = npcFreeSpot(npcSpot.x, npcSpot.y) || { x: npc.x, y: npc.y };
+            npcPath = { x: ns.x, y: ns.y };
+          }
+          if (playerSpot) {
+            walkTarget = freeSpot(clamp(playerSpot.x, 16, 368), clamp(playerSpot.y, 58, 212))
+              || { x: player.x, y: player.y };
+          }
+          if (!npcSpot && !playerSpot) endTourMove(false);
+        });
+      },
+    },
+    /* One simulation tick, exposed so the tour and the layout can be driven
+       deterministically (the browser tab does not always run rAF). */
+    step: function (dt) {
+      dt = dt || 1 / 60;
+      time += dt;
+      Room.update(dt, time);
+      if (!uiPaused) update(dt);
+      render();
+      return { npc: { x: Math.round(npc.x), y: Math.round(npc.y) }, player: { x: Math.round(player.x), y: Math.round(player.y) } };
+    },
     onSecret: onSecret,
     onIdleProgress: onIdleProgress,
     spawn: spawn,
@@ -741,6 +933,10 @@ window.Game = (function () {
         pet: pet ? { x: Math.round(pet.x), y: Math.round(pet.y), dir: pet.dir, frame: pet.frame } : null,
         parts: parts.length,
         emote: emote ? emote.text : null,
+        npcEmote: npcEmote ? npcEmote.text : null,
+        npc: { x: Math.round(npc.x), y: Math.round(npc.y), dir: npc.dir, moving: npc.moving },
+        player: { x: Math.round(player.x), y: Math.round(player.y), dir: player.dir, moving: player.moving },
+        tour: { mode: tourMode, moving: !!npcPath, awaiting: !!tourMove },
         legend: legend,
         speed: player.speed,
       };

@@ -14,11 +14,10 @@ window.PORTFOLIO = {
     location: "Alexandria, Egypt",
     timezone: "Africa/Cairo",
     availability: "Open to work — remote & on-site",
-    // Add your real address here; no placeholder email is shown publicly.
-    email: "",
+    email: "mohammed1.nasr.elshreef@gmail.com",
     github: "https://github.com/MohammedDev69",
     // Leave a link empty ("") and the UI will simply hide it — no dead links.
-    linkedin: "",
+    linkedin: "https://www.linkedin.com/in/mohamed-elshreef-dev/",
     twitter: "",
     discord: "",
     website: "",
@@ -41,7 +40,6 @@ window.PORTFOLIO = {
       {
         id: "experience",
         label: "Experience & Career",
-        labelAr: "خلفيتي وخبرتي",
         answer:
           "Self-taught full-stack developer since 2022, based in Alexandria, Egypt. I design and ship complete products: Next.js + NestJS storefronts, realtime dashboards on Supabase, and production Discord bots in Node and Python.\n\nI care about clean architecture, good developer experience, and things that actually ship.",
         action: { label: "VIEW FULL TIMELINE", type: "modal", value: "resume" },
@@ -49,7 +47,6 @@ window.PORTFOLIO = {
       {
         id: "projects",
         label: "Show me your Projects!",
-        labelAr: "معرض أعمالي",
         answer:
           "Everything public lives on GitHub — 9 repositories: a full digital-goods store, a visual desktop automation tool, OCR-powered verification bots and more. Opening the live feed now.",
         action: { label: "OPEN PROJECTS", type: "modal", value: "projects" },
@@ -57,7 +54,6 @@ window.PORTFOLIO = {
       {
         id: "stack",
         label: "My Tech Stack",
-        labelAr: "مهاراتي البرمجية",
         answer:
           "TypeScript and JavaScript first, Python for automation. Frontend: Next.js, React, Tailwind. Backend: NestJS, Node, Prisma, PostgreSQL, Supabase. Bots: discord.js, discord.py. Tooling: Docker, GitHub Actions, Playwright. Always learning.",
         action: { label: "OPEN SKILLS", type: "modal", value: "skills" },
@@ -65,9 +61,8 @@ window.PORTFOLIO = {
       {
         id: "contact",
         label: "How to Contact you?",
-        labelAr: "تواصل معي",
         answer:
-          "Ping me on GitHub. Add your email and social links to js/config.js if you prefer to be contacted elsewhere." ,
+          "Email is the fastest route — the address is in the contact window and one click copies it. LinkedIn works too, and GitHub is always open.",
         action: { label: "OPEN CONTACT", type: "modal", value: "contact" },
       },
     ],
@@ -274,6 +269,8 @@ window.PORTFOLIO = {
     blurb:
       "I'm available for full-stack product work, Discord bots and automation. Tell me what you're making — I'll reply within a day.",
     links: [
+      { id: "email", label: "Email", value: "mohammed1.nasr.elshreef@gmail.com", url: "mailto:mohammed1.nasr.elshreef@gmail.com" },
+      { id: "linkedin", label: "LinkedIn", value: "in/mohamed-elshreef-dev", url: "https://www.linkedin.com/in/mohamed-elshreef-dev/" },
       { id: "github", label: "GitHub", value: "@MohammedDev69", url: "https://github.com/MohammedDev69" },
       { id: "location", label: "Based in", value: "Alexandria, Egypt", url: "" },
     ],
@@ -281,6 +278,9 @@ window.PORTFOLIO = {
 
   /* ------------------------------------------------------------------ */
   resume: {
+    // Optional: point this at a pre-rendered PDF (e.g. "assets/cv.pdf") and the
+    // resume window offers a real download instead of the print dialog.
+    pdf: "",
     summary:
       "Full-stack developer building production web platforms and automation. I ship complete products — typed APIs, realtime data, polished interfaces and CI/CD — and I care about code that stays maintainable after launch.",
     highlights: [
@@ -379,5 +379,172 @@ window.PORTFOLIO = {
     cacheKey: "mn_portfolio_repos_v1",
     cacheTtl: 10 * 60 * 1000,
     maxProjects: 8,
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* Arabic content — mirrored onto the English content above by js/i18n.js
+     when the visitor switches language. English stays the default and the
+     source of truth; anything you leave out here simply stays English.
+     UI chrome strings (buttons, HUD, window headings) live in js/i18n.js. */
+  i18n: {
+    ar: {
+      profile: {
+        name: "محمد نصر",
+        role: "مبرمج متكامل (Full-Stack)",
+        tagline: "أبني تطبيقات الويب والمنصّات اللحظية وبوتات ديسكورد.",
+        location: "الإسكندرية، مصر",
+        availability: "متاح للعمل — عن بُعد أو من المكتب",
+      },
+
+      dialogue: {
+        greeting:
+          "أهلاً بك في البورتفوليو التفاعلي! أنا مبرمج متكامل. ما الذي تودّ معرفته عنّي؟",
+        idle:
+          "ما زلت هنا؟ خُذ وقتك — القهوة طازجة. اختر موضوعاً، أو تجوّل في الغرفة.",
+        choices: [
+          {
+            id: "experience",
+            label: "خبرتي ومسيرتي المهنية",
+            answer:
+              "مبرمج متكامل تعلّمت ذاتياً منذ 2022، مقيم في الإسكندرية بمصر. أصمّم وأُطلق منتجات كاملة: متاجر Next.js + NestJS، ولوحات لحظية على Supabase، وبوتات ديسكورد إنتاجية بلغات Node وPython.\n\nأهتم بالمعمارية النظيفة، وتجربة المطوّر الجيدة، وبالأشياء التي تُطلَق فعلاً.",
+            action: { label: "عرض المسيرة الكاملة", type: "modal", value: "resume" },
+          },
+          {
+            id: "projects",
+            label: "أرِني مشاريعك!",
+            answer:
+              "كل ما هو عام موجود على جيت هاب — 9 مستودعات: متجر منتجات رقمية كامل، أداة أتمتة مكتبية مرئية، بوتات تحقّق بتقنية OCR وغيرها. أفتح التغذية المباشرة الآن.",
+            action: { label: "فتح المشاريع", type: "modal", value: "projects" },
+          },
+          {
+            id: "stack",
+            label: "تقنياتي",
+            answer:
+              "TypeScript وJavaScript أولاً، وPython للأتمتة. الواجهة: Next.js وReact وTailwind. الخادم: NestJS وNode وPrisma وPostgreSQL وSupabase. البوتات: discord.js وdiscord.py. الأدوات: Docker وGitHub Actions وPlaywright. أتعلّم دائماً.",
+            action: { label: "فتح المهارات", type: "modal", value: "skills" },
+          },
+          {
+            id: "contact",
+            label: "كيف أتواصل معك؟",
+            answer:
+              "البريد الإلكتروني أسرع وسيلة — العنوان في نافذة التواصل وبنقرة واحدة يُنسخ. لينكد إن متاح أيضاً، وجيت هاب مفتوح دائماً.",
+            action: { label: "فتح التواصل", type: "modal", value: "contact" },
+          },
+        ],
+      },
+
+      experience: [
+        {
+          role: "مطوّر متكامل مستقل",
+          company: "مستقل / عن بُعد",
+          period: "2023 — حتى الآن",
+          location: "الإسكندرية، مصر",
+          summary:
+            "عمل متكامل على المنتج: المعمارية، واجهات برمجية مُنمّطة، الواجهة الأمامية، النشر والصيانة.",
+          bullets: [
+            "بنيت gamers-matrix، متجر منتجات رقمية (Next.js + NestJS + Prisma + Paymob) داخل monorepo بـ Turborepo.",
+            "أطلقت المصادقة وإدارة الصلاحيات ولوحات لحظية على Supabase/PostgreSQL.",
+            "أتمتت العمليات بأدوات Python وخطوط معالجة OCR وسير عمل GitHub Actions.",
+          ],
+        },
+        {
+          role: "مطوّر بوتات ديسكورد وأتمتة",
+          company: "مستقل",
+          period: "2022 — 2024",
+          location: "عن بُعد",
+          summary: "بوتات إنتاجية للتحقّق والإشراف والتذاكر وتدفّقات الدفع.",
+          bullets: [
+            "بنيت discord-yt-sub-verifier: فحص اشتراكات عبر لقطات الشاشة بـ OpenCV + Tesseract داخل بوت يعمل في Docker.",
+            "أطلقت إخفاء الكلمات المفتاحية وإشرافاً تلقائياً بتحذيرات دائمة وتذاكر وأدوار ذاتية.",
+            "أدرت مدير بوتات متعدد بتكافؤ كامل بين أوامر الشرطة المائلة وأوامر البادئة.",
+          ],
+        },
+      ],
+
+      education: [
+        {
+          title: "هندسة متكاملة ذاتية التعلّم",
+          org: "تعلّم مستمر قائم على المشاريع",
+          period: "2022 — حتى الآن",
+          detail:
+            "TypeScript وNode.js وReact/Next.js وNestJS وPostgreSQL والنشر السحابي وCI/CD — عبر إطلاق منتجات حقيقية.",
+        },
+      ],
+
+      projects: [
+        { name: "gamers-matrix", description: "متجر منتجات رقمية لمفاتيح الألعاب وشحنها، مع الدفع وإدارة الطلبات ولوحة تحكّم، ومدفوعات Paymob." },
+        { name: "flowmatic", description: "أتمتة مكتبية مرئية بسحب وإفلات لسير العمل ومفاتيح اختصار عامة. Python + PySide6." },
+        { name: "discord-yt-sub-verifier", description: "بوت ديسكورد إنتاجي يتحقّق من اشتراكات يوتيوب عبر لقطات الشاشة باستخدام OCR." },
+        { name: "opencode-apikeys", description: "أداة سطر أوامر Node بلا اعتماديات تخزّن مفاتيح API متعددة لكل مزوّد في OpenCode وتُبدّل بينها." },
+        { name: "discord-word-obfuscator", description: "إخفاء الكلمات المفتاحية وإشراف تلقائي بتحذيرات دائمة وتذاكر طلبات وأدوار ذاتية." },
+        { name: "spin-wheel-bot", description: "بوت ديسكورد بعجلة جوائز متحركة على Canvas تُدار بأوامر الشرطة المائلة." },
+        { name: "active-developer-badge-bot", description: "خدمة ديسكورد آلية لشارة المطوّر النشط: مدير بوتات متعدد وتذاكر ومدفوعات." },
+        { name: "actions-rdp", description: "جلسات RDP ويندوز مؤقتة على مشغّلات GitHub Actions مع وصول عن بُعد عبر Tailscale." },
+      ],
+
+      techStack: [
+        { group: "اللغات" },
+        { group: "الواجهة الأمامية" },
+        { group: "الخادم" },
+        { group: "البيانات والسحابة" },
+        { group: "البوتات والأتمتة" },
+        { group: "DevOps والأدوات" },
+      ],
+
+      skillLabels: { 5: "متقدّم", 4: "متمكّن", 3: "عملي", 2: "يتعلّم", 1: "يستكشف" },
+
+      contact: {
+        heading: "لنبنِ شيئاً معاً.",
+        blurb:
+          "متاح للعمل على منتجات متكاملة، وبوتات ديسكورد، والأتمتة. أخبرني بما تبنيه — سأرد خلال يوم.",
+        links: [
+          { id: "email", label: "البريد الإلكتروني" },
+          { id: "linkedin", label: "لينكد إن" },
+          { id: "github", label: "جيت هاب" },
+          { id: "location", label: "المقر", value: "الإسكندرية، مصر" },
+        ],
+      },
+
+      resume: {
+        summary:
+          "مبرمج متكامل يبني منصّات ويب إنتاجية وأتمتة. أُطلق منتجات كاملة — واجهات برمجية مُنمّطة، بيانات لحظية، واجهات مصقولة وCI/CD — وأهتم بكود يبقى قابلاً للصيانة بعد الإطلاق.",
+        highlights: [
+          "خبرة تتجاوز 5 سنوات في إطلاق مشاريع TypeScript/JavaScript وPython",
+          "ملكية شاملة من البداية للنهاية: قاعدة البيانات، الـ API، الواجهة، النشر",
+          "بوتات ديسكورد إنتاجية وخطوط OCR وأتمتة",
+        ],
+        projects: [
+          {
+            name: "gamers-matrix",
+            description:
+              "منصّة تجارة إلكترونية للمنتجات الرقمية مع الدفع وإدارة الطلبات ولوحة تحكّم داخل monorepo بـ Turborepo.",
+          },
+          {
+            name: "flowmatic",
+            description:
+              "أداة بناء أتمتة مكتبية مرئية: رسم سير عمل بالسحب والإفلات، ومفاتيح اختصار عامة، ومشغّل محلي.",
+          },
+          {
+            name: "discord-yt-sub-verifier",
+            description:
+              "بوت تحقّق من الاشتراكات يقرأ لقطات الشاشة بـ OCR ويمنح الأدوار تلقائياً.",
+          },
+        ],
+      },
+
+      secrets: {
+        banner: "سبعة أشياء في هذه الغرفة تفعل شيئاً إضافياً. لا كأس للفائز — فقط حق الافتخار.",
+        finale: "وجدت كل الأسرار. محمد الآن بالمستوى 100 والغرفة تعرف ذلك.",
+        entries: [
+          { id: "konami", name: "وضع المطوّر", hint: "لا تزال شيفرة قديمة تعمل هنا: أعلى، أعلى، أسفل، أسفل، يسار، يمين، يسار، يمين، B، A." },
+          { id: "cat", name: "عاشق القطط", hint: "القطة نائمة. ألحّ عليها — خمس مرات." },
+          { id: "lamp", name: "بومة الليل", hint: "لمصباح المكتب مفتاح. اقترب منه واضغط E." },
+          { id: "hire", name: "اكتُشف المُوظِّف", hint: "اكتب بالحروف اللاتينية الكلمة التي يتمنّى كل مبرمج سماعها: hire." },
+          { id: "idle", name: "ما زلت هنا؟", hint: "توقّف عن الحركة نصف دقيقة وراقب نفسك." },
+          { id: "octocat", name: "الأوكتوكات", hint: "انقر على الصورة في الترويسة حتى تستسلم." },
+          { id: "marathon", name: "الماراثون", hint: "امشِ 2000 بكسل. نعم، خطوات كثيرة." },
+        ],
+      },
+    },
   },
 };
