@@ -1072,9 +1072,16 @@ window.UI = (function () {
       window.addEventListener("pointerdown", unlock, { once: true });
       window.addEventListener("keydown", unlock, { once: true });
 
-      /* pause the loop when the tab is hidden */
+      /* Pause while the tab is hidden, and — just as important — resume when it
+         comes back: a pause that is never lifted leaves the visitor frozen. */
       document.addEventListener("visibilitychange", function () {
-        if (document.hidden && window.Game) window.Game.setPaused(true, true);
+        if (!window.Game || !window.Game.setPaused) return;
+        if (document.hidden) {
+          window.Game.setPaused(true);
+          return;
+        }
+        var blocked = pauseWhileBlocking && (dlg.open || !overlay.hidden);
+        window.Game.setPaused(blocked);
       });
     },
     openDialogue: openDialogue,
