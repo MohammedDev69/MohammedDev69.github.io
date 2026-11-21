@@ -327,15 +327,15 @@ window.PORTFOLIO = {
   },
 
   /* ------------------------------------------------------------------ */
-  /* Easter eggs. Seven things happen in this room if you poke at it.
+  /* Easter eggs. Eight things happen in this room if you poke at it.
      `hint` is what the SECRETS window shows while the egg is still locked. */
   secrets: {
-    banner: "Seven things in this room do something extra. No trophy for finding them — only bragging rights.",
+    banner: "Eight things in this room do something extra. No trophy for finding them — only bragging rights.",
     finale: "Every secret found. Mohamed is now LV.100 and the room knows it.",
     entries: [
       {
         id: "konami",
-        name: "DEV MODE",
+        name: "PIXEL PARTY",
         hint: "An old cheat code still works here: up, up, down, down, left, right, left, right, B, A.",
       },
       {
@@ -367,6 +367,11 @@ window.PORTFOLIO = {
         id: "marathon",
         name: "MARATHON",
         hint: "Walk 2000 pixels. Yes, it is a lot of steps.",
+      },
+      {
+        id: "window",
+        name: "SHOOTING STAR",
+        hint: "The window over the desk looks at the night sky. Walk up to it and press E.",
       },
     ],
   },
@@ -533,16 +538,17 @@ window.PORTFOLIO = {
       },
 
       secrets: {
-        banner: "سبعة أشياء في هذه الغرفة تفعل شيئاً إضافياً. لا كأس للفائز — فقط حق الافتخار.",
+        banner: "ثمانية أشياء في هذه الغرفة تفعل شيئاً إضافياً. لا كأس للفائز — فقط حق الافتخار.",
         finale: "وجدت كل الأسرار. محمد الآن بالمستوى 100 والغرفة تعرف ذلك.",
         entries: [
-          { id: "konami", name: "وضع المطوّر", hint: "لا تزال شيفرة قديمة تعمل هنا: أعلى، أعلى، أسفل، أسفل، يسار، يمين، يسار، يمين، B، A." },
+          { id: "konami", name: "حفلة البكسل", hint: "لا تزال شيفرة قديمة تعمل هنا: أعلى، أعلى، أسفل، أسفل، يسار، يمين، يسار، يمين، B، A." },
           { id: "cat", name: "عاشق القطط", hint: "القطة نائمة. ألحّ عليها — خمس مرات." },
           { id: "lamp", name: "بومة الليل", hint: "لمصباح المكتب مفتاح. اقترب منه واضغط E." },
           { id: "hire", name: "اكتُشف المُوظِّف", hint: "اكتب بالحروف اللاتينية الكلمة التي يتمنّى كل مبرمج سماعها: hire." },
           { id: "idle", name: "ما زلت هنا؟", hint: "توقّف عن الحركة نصف دقيقة وراقب نفسك." },
           { id: "octocat", name: "الأوكتوكات", hint: "انقر على الصورة في الترويسة حتى تستسلم." },
           { id: "marathon", name: "الماراثون", hint: "امشِ 2000 بكسل. نعم، خطوات كثيرة." },
+          { id: "window", name: "شهاب", hint: "الشباك فوق المكتب يطل على سماء الليل. اقترب منه واضغط E." },
         ],
       },
     },

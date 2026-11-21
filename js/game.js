@@ -28,7 +28,6 @@ window.Game = (function () {
   var emote = null;           /* the little bubble above the visitor */
   var npcEmote = null;        /* the bubble above Mohamed when he greets you */
   var legend = false;         /* every secret found */
-  var lastDt = 0.016;         /* for the DEV MODE readout */
 
   var player = {
     x: 192, y: 190, dir: "up", moving: false, frame: 0, anim: 0, speed: 64,
@@ -624,58 +623,6 @@ window.Game = (function () {
   }
 
   /* ---------------------------------------------------------------- */
-  /* DEV MODE (konami): boxes, zones and numbers, straight from the      */
-  /* data the game actually uses.                                       */
-  function drawDebug() {
-    var i, it;
-    ctx.save();
-    ctx.globalAlpha = 0.85;
-    ctx.strokeStyle = "#6ee7c7";
-    ctx.lineWidth = 1;
-    ctx.font = "6px monospace";
-    ctx.fillStyle = "#6ee7c7";
-
-    ctx.beginPath();
-    for (i = 0; i < Room.solids.length; i++) {
-      var s = Room.solids[i];
-      ctx.rect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
-    }
-    ctx.stroke();
-
-    for (i = 0; i < Room.interactables.length; i++) {
-      it = Room.interactables[i];
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = "#7aa2f7";
-      ctx.fillRect(it.zone.x, it.zone.y, it.zone.w, it.zone.h);
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = "#ff6b6b";
-      ctx.fillRect(it.stand.x - 1, it.stand.y - 1, 3, 3);
-      ctx.fillStyle = "#6ee7c7";
-      ctx.fillRect(it.hit.x, it.hit.y, it.hit.w, 1);
-    }
-
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "#6ee7c7";
-    ctx.fillRect(player.x - 5, player.y - 7, 10, 7);
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = "#ffb454";
-    ctx.fillRect(player.x - 5, player.y - 7, 10, 7);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-
-    var label = "DEV MODE " + W + "x" + H +
-      " " + Math.round(1 / Math.max(lastDt, 0.001)) + "FPS" +
-      " X" + Math.round(player.x) + " Y" + Math.round(player.y) +
-      " W" + window.Secrets.walked() + "px";
-    var lw = window.PixelFont.width(label) + 6;
-    ctx.fillStyle = "rgba(6,9,14,0.8)";
-    ctx.fillRect(4, 4, lw, 11);
-    ctx.fillStyle = "#6ee7c7";
-    ctx.fillRect(4, 4, lw, 1);
-    window.PixelFont.draw(ctx, label, 7, 6, { color: "#a9f5dd" });
-  }
-
-  /* ---------------------------------------------------------------- */
   /* Rewards for the secrets                                            */
   function wakePet(x, y) {
     if (pet) return;
@@ -714,8 +661,17 @@ window.Game = (function () {
     } else if (id === "marathon") {
       player.speed = Math.round(BASE_SPEED * 1.2);
       spawn(14, player.x, player.y, "spark");
+    } else if (id === "window") {
+      spawn(10, 332, 34, "spark");
     } else if (id === "konami") {
+      /* pixel party: confetti everywhere, the lamp comes on, both cheer */
+      Room.setLights(true);
+      if (window.Audio8) window.Audio8.play("power");
       spawn(20, player.x, player.y, "confetti");
+      spawn(12, npc.x, npc.y + 8, "confetti");
+      spawn(10, 200, 118, "confetti");
+      emote = { text: "YAY!", until: time + 3 };
+      npcEmote = { text: "!", until: time + 2.4 };
     } else if (id === "octocat") {
       spawn(14, 316, 168, "spark");
     } else if (id === "all") {
@@ -886,7 +842,6 @@ window.Game = (function () {
     drawEmote();
     drawNpcEmote();
     drawPrompts();
-    if (window.Secrets && window.Secrets.devMode()) drawDebug();
   }
 
   /* ---------------------------------------------------------------- */
@@ -947,7 +902,6 @@ window.Game = (function () {
     if (!lastTs) lastTs = ts;
     var dt = Math.min(0.05, (ts - lastTs) / 1000);
     lastTs = ts;
-    lastDt = dt;
     if (document.hidden) return;
     time += dt;
     Room.update(dt, time);
@@ -977,6 +931,11 @@ window.Game = (function () {
       window.Audio8.play("power");
       UI.toast(on ? t("toast.lightsOn") : t("toast.lightsOff"));
       if (window.Secrets && !window.Secrets.has("lamp")) window.Secrets.unlock("lamp");
+    } else if (id === "window") {
+      Room.shootStar();
+      window.Audio8.play("confirm");
+      if (window.Secrets && !window.Secrets.has("window")) window.Secrets.unlock("window");
+      else UI.toast(t("toast.wish"));
     }
   }
 
@@ -1154,6 +1113,15 @@ window.Game = (function () {
         }
       },
       active: function () { return tourMode; },
+      /* Walk Mohamed back to his home spot once the intro is over, and leave
+         him there: the guided tour is the only thing that ever moves him. */
+      home: function () {
+        if (tourMode) return;
+        var ns = npcFreeSpot(301, 112) || { x: npc.x, y: npc.y };
+        var np = navRoute(npc.x, npc.y, ns.x, ns.y, null);
+        npcPath = np && np.length ? np : [];
+        npc.moving = npcPath.length > 0;
+      },
       npc: function () { return { x: Math.round(npc.x), y: Math.round(npc.y), dir: npc.dir }; },
       player: function () { return { x: Math.round(player.x), y: Math.round(player.y) }; },
       /* a bubble over Mohamed, e.g. "!" or "..."; null/"" clears it */

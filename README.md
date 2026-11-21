@@ -52,7 +52,7 @@ js/sprites.js       procedural pixel characters + PNG sprite-sheet importer
 js/room.js          baked room art, furniture, lighting, particles
 js/ui.js            dialogue, windows (projects/skills/contact/resume), toasts
 js/game.js          loop, movement, collision, interactions, rendering order
-js/secrets.js       the seven easter eggs: triggers, progress, SECRETS window
+js/secrets.js       the eight easter eggs: triggers, progress, SECRETS window
 js/audio.js         WebAudio chiptune loop and sound effects
 js/onboarding.js    text-mode switch + the arrival greeting and guided tour
 assets/             sprite sheets + generated icons and OG cover
@@ -73,7 +73,7 @@ Everything the site says lives in `js/config.js`:
 - `contact` — mailbox rows
 - `resume` — summary, highlights and selected projects
 - `sprites` — character sheet paths and import options
-- `secrets` — the seven easter eggs: their names and the hints shown while locked
+- `secrets` — the eight easter eggs: their names and the hints shown while locked
 
 Projects are fetched live from
 `https://api.github.com/users/MohammedDev69/repos` and cached in
@@ -125,21 +125,22 @@ still runs, just without the two figures. The site can never get stuck loading.
 
 ## Easter eggs
 
-Seven secrets are hidden in the room and tracked by the SECRETS chip in the
+Eight secrets are hidden in the room and tracked by the SECRETS chip in the
 top-left HUD. Progress is stored in `localStorage`, and the chip opens a window
 that lists what is still missing with a hint for each.
 
 | Secret | Trigger | Reward |
 | --- | --- | --- |
-| DEV MODE | Konami code: ↑↑↓↓←→←→BA | Collision boxes, interaction zones, stand points and a live FPS/position readout |
+| PIXEL PARTY | Konami code: ↑↑↓↓←→←→BA | Confetti across the room, the lamp comes on and both characters cheer |
 | CAT PERSON | Pet the sleeping cat five times | The cat wakes up and follows you around |
 | NIGHT OWL | Switch the desk lamp off | The room goes dark, lit only by the lamp and the monitors |
 | RECRUITER DETECTED | Type `hire` | Hearts, and a very obvious hint |
 | STILL HERE? | Stand still for 30 seconds | The visitor yawns |
 | OCTOCAT | Poke the header avatar seven times | An octocat moves in next to the desk |
 | MARATHON | Walk 2000 pixels | A permanent speed boost |
+| SHOOTING STAR | Walk to the window and press E | A star streaks across the night sky in the glass |
 
-Find all seven and the room calls Mohamed LV.100, which the dialogue window
+Find all eight and the room calls Mohamed LV.100, which the dialogue window
 picks up. Triggers, names and hints all live in the `secrets` block of
 `js/config.js`; the logic is in `js/secrets.js` and the rewards in
 `js/game.js` (`onSecret`).
@@ -189,7 +190,7 @@ brand assets can be regenerated without a design tool.
   visitor, a speech bubble appears and he asks whether he should show the place
   around. Say yes and he walks ahead from station to station — projects, stack,
   GitHub, contact — opening each one on the way, then points playfully at the
-  seven easter eggs before handing the room over. Say no and you are left alone.
+  eight easter eggs before handing the room over. Say no and you are left alone.
 
 ## First visit
 

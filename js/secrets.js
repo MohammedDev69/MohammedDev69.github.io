@@ -247,7 +247,6 @@ window.Secrets = (function () {
     tick: tick,
     panelHTML: panelHTML,
     paint: paintBadge,
-    devMode: function () { return has("konami"); },
     /** remaining seconds of standing still, 0 when the egg is already found */
     idleLeft: function () {
       if (has("idle")) return 0;

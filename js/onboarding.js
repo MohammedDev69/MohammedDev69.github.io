@@ -11,7 +11,7 @@
       he asks whether he should show the place around. Answer "yes" and he walks
       the visitor from station to station — projects, stack, GitHub, contact —
       opening each one on the way, and finishes with a playful pointer at the
-      seven easter eggs. Answer "no" and the room is yours.
+      eight easter eggs. Answer "no" and the room is yours.
 
    The whole conversation is one scripted dialogue (UI.playScript), so it can be
    re-translated mid-step and it never fights the room for control: the game
@@ -175,7 +175,11 @@ window.Onboarding = (function () {
     running = false;
     phase = null;
     phaseStep = null;
-    if (window.Game && window.Game.tour) window.Game.tour.set(false);
+    if (window.Game && window.Game.tour) {
+      window.Game.tour.set(false);
+      /* Mohamed walks back to his home spot and stays there afterwards */
+      window.Game.tour.home();
+    }
     window.UI.setGamePauseWhileBlocking(true);
     return aborted ? "aborted" : "done";
   }

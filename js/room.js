@@ -13,6 +13,7 @@ window.Room = (function () {
   var lights = true;      /* the desk lamp switch (NIGHT OWL secret) */
   var dark = null;
   var focus = null;       /* the visitor's lantern in the dark */
+  var wish = null;        /* the shooting star at the window (SHOOTING STAR secret) */
 
   /* ---------------------------------------------------------------- */
   function px(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(x | 0, y | 0, w | 0, h | 0); }
@@ -834,9 +835,38 @@ window.Room = (function () {
       ctx.fillRect(Math.round(d.x), Math.round(d.y), 1, 1);
     }
     ctx.globalAlpha = 1;
+
+    /* shooting star: a streak across the glass, then a fading twinkle */
+    if (wish) {
+      var fall = Math.min(1, wish.t / 0.9);
+      var fadeOut = wish.t > 0.9 ? Math.max(0, 1 - (wish.t - 0.9) / 1.6) : 1;
+      for (var q = 0; q < 9; q++) {
+        var k = fall - q * 0.045;
+        if (k < 0) break;
+        var tx = 362 - 50 * k, ty = 12 + 26 * k;
+        ctx.globalAlpha = fadeOut * (1 - q / 9) * 0.85;
+        ctx.fillStyle = q === 0 ? "#ffffff" : "#bcd8ff";
+        ctx.fillRect(Math.round(tx), Math.round(ty), q === 0 ? 2 : 1, q === 0 ? 2 : 1);
+      }
+      if (wish.t > 0.9) {
+        var tw = Math.max(0, 1 - (wish.t - 0.9) / 1.6);
+        ctx.globalAlpha = tw * 0.9;
+        ctx.fillStyle = "#ffe9a8";
+        ctx.fillRect(311, 38, 3, 1);
+        ctx.fillRect(312, 37, 1, 3);
+        ctx.globalAlpha = tw * 0.5;
+        ctx.fillRect(312, 38, 1, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
   }
 
   function update(dt, t) {
+    /* the shooting star crosses the glass, leaves a trail, then fades */
+    if (wish) {
+      wish.t += dt;
+      if (wish.t > 2.6) wish = null;
+    }
     /* dust drift */
     for (var i = 0; i < dust.length; i++) {
       var d = dust[i];
@@ -940,12 +970,20 @@ window.Room = (function () {
           stand: { x: 103, y: 158 },
           prompt: { x: 105, y: 104 },
         },
+        {
+          id: "window", name: "NIGHT SKY", label: "WISH",
+          hit: { x: 296, y: 6, w: 72, h: 40 },
+          zone: { x: 300, y: 58, w: 66, h: 18 },
+          stand: { x: 332, y: 66 },
+          prompt: { x: 332, y: 2 },
+        },
       ];
     },
     drawBase: function (ctx) { ctx.drawImage(bg.canvas, 0, 0); },
     update: update,
     drawOverlay: drawOverlay,
     drawCat: drawCat,
+    shootStar: function () { wish = { t: 0 }; },
     setLights: function (on) { lights = !!on; },
     isLightsOn: function () { return lights; },
     setFocus: function (x, y) { focus = { x: x, y: y }; },
