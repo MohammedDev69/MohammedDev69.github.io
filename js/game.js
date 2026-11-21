@@ -12,8 +12,12 @@ window.Game = (function () {
   var isTouch = false;
   var active = null;
   var keys = Object.create(null);
-  var walkTarget = null;
-  var pendingInteract = null;
+  var walkTarget = null;      /* where the visitor is heading (drawn as a marker) */
+  var path = [];              /* the remaining waypoints of that walk */
+  var pendingInteract = null; /* the object to open once the walk arrives */
+  var pendingZone = null;     /* ...and the zone that counts as "arrived" */
+  var stuckFor = 0;           /* seconds spent without getting closer */
+  var stuckFrom = Infinity;   /* distance to the current waypoint last frame */
   var steps = 0;
   var spritesReady = false;   /* flips once the character art source is final */
   var MIN_BOOT_MS = 450;      /* keeps the boot screen from blinking away */
@@ -35,8 +39,8 @@ window.Game = (function () {
   /* Guided tour state (driven by js/onboarding.js). While a tour runs the room
      keeps simulating: Mohamed walks himself, the visitor follows on autopilot,
      the two never collide, and proximity prompts are muted. */
-  var npcPath = null;         /* {x, y} the NPC is walking towards */
-  var npcGhost = false;       /* NPC stops blocking the visitor */
+  var npcPath = [];           /* the waypoints Mohamed is walking */
+  var npcGhost = false;       /* the NPC stops blocking the visitor */
   var tourMode = false;       /* hides prompts/cursor while Mohamed guides */
   var tourMove = null;        /* the move currently being awaited */
 
@@ -51,37 +55,326 @@ window.Game = (function () {
     return { x: x - 5, y: y - 7, w: 10, h: 7 };
   }
 
-  function blocked(x, y) {
+  /* The walkable box of the room. Collision, pathfinding and the click targets
+     all use these four numbers. */
+  var ROOM = { x0: 12, y0: 56, x1: 372, y1: 214 };
+
+  /* Solid geometry only: the 10x7 footprint against the furniture and walls. */
+  function solidsBlocked(x, y) {
     var hb = hitbox(x, y);
-    if (hb.x < 12 || hb.x + hb.w > 372 || hb.y < 56 || hb.y + hb.h > 214) return true;
+    if (hb.x < ROOM.x0 || hb.x + hb.w > ROOM.x1) return true;
+    if (hb.y < ROOM.y0 || hb.y + hb.h > ROOM.y1) return true;
     var solids = Room.solids;
     for (var i = 0; i < solids.length; i++) {
       if (aabb(hb, solids[i])) return true;
     }
-    if (aabb(hb, { x: npc.x - 7, y: npc.y - 7, w: 14, h: 7 }) && !npcGhost) return true;
     return false;
   }
 
-  /* Same walkable test, but from Mohamed's point of view: he collides with the
-     furniture and with the visitor, never with himself. */
-  function npcBlocked(x, y) {
-    var hb = hitbox(x, y);
-    if (hb.x < 12 || hb.x + hb.w > 372 || hb.y < 56 || hb.y + hb.h > 214) return true;
-    var solids = Room.solids;
-    for (var i = 0; i < solids.length; i++) {
-      if (aabb(hb, solids[i])) return true;
-    }
-    return aabb(hb, hitbox(player.x, player.y));
+  /* A spot the visitor can actually stand on. */
+  function standable(x, y) { return !solidsBlocked(x, y); }
+
+  function npcBox() { return { x: npc.x - 7, y: npc.y - 7, w: 14, h: 7 }; }
+
+  /* Mohamed steps aside instead of turning into a wall. */
+  function nudgeNpc(px, py) {
+    var dx = npc.x - px, dy = npc.y - py;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var nx = npc.x + (dx / len) * 1.6;
+    var ny = npc.y + (dy / len) * 1.6;
+    if (!solidsBlocked(nx, ny)) { npc.x = nx; npc.y = ny; }
+    else if (!solidsBlocked(npc.x, ny)) { npc.y = ny; }
+    else if (!solidsBlocked(nx, npc.y)) { npc.x = nx; }
   }
 
+  function blocked(x, y) {
+    if (solidsBlocked(x, y)) return true;
+    if (npcGhost) return false;
+    return aabb(hitbox(x, y), npcBox());
+  }
+
+  /* The same test from Mohamed's point of view. */
+  function npcBlocked(x, y) {
+    if (solidsBlocked(x, y)) return true;
+    if (npcGhost) return false;
+    return aabb(hitbox(x, y), hitbox(player.x, player.y));
+  }
+
+  /* One step, axis by axis, so the visitor slides along furniture instead of
+     stopping dead at it. Returns whether anything actually moved. */
   function moveBy(dx, dy) {
+    var moved = false;
     if (dx) {
       var nx = player.x + dx;
-      if (!blocked(nx, player.y)) player.x = nx;
+      if (!solidsBlocked(nx, player.y)) {
+        if (blocked(nx, player.y)) nudgeNpc(nx, player.y);
+        if (!blocked(nx, player.y)) { player.x = nx; moved = true; }
+      }
     }
     if (dy) {
       var ny = player.y + dy;
-      if (!blocked(player.x, ny)) player.y = ny;
+      if (!solidsBlocked(player.x, ny)) {
+        if (blocked(player.x, ny)) nudgeNpc(player.x, ny);
+        if (!blocked(player.x, ny)) { player.y = ny; moved = true; }
+      }
+    }
+    return moved;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* NAVIGATION. A coarse grid (8px cells) over the walkable box, with
+     Dijkstra run from the visitor's own cell. A click therefore becomes a
+     real route around the furniture — the lamp base, the shelf, the
+     mailbox and the desk — instead of a straight line that grinds.       */
+  var CELL = 8;
+  var DX = [1, -1, 0, 0, 1, 1, -1, -1];
+  var DY = [0, 0, 1, -1, 1, -1, 1, -1];
+  var NAV = { cols: 0, rows: 0, grid: null };
+
+  function cellX(c) { return ROOM.x0 + c * CELL + CELL / 2; }
+  function cellY(r) { return ROOM.y0 + r * CELL + CELL / 2; }
+  function cellCol(x) { return Math.floor((x - ROOM.x0) / CELL); }
+  function cellRow(y) { return Math.floor((y - ROOM.y0) / CELL); }
+  function inNav(c, r) { return c >= 0 && r >= 0 && c < NAV.cols && r < NAV.rows; }
+
+  function buildNav() {
+    NAV.cols = Math.max(1, Math.floor((ROOM.x1 - ROOM.x0) / CELL));
+    NAV.rows = Math.max(1, Math.floor((ROOM.y1 - ROOM.y0) / CELL));
+    NAV.grid = new Uint8Array(NAV.cols * NAV.rows);
+    for (var r = 0; r < NAV.rows; r++) {
+      for (var c = 0; c < NAV.cols; c++) {
+        NAV.grid[r * NAV.cols + c] = standable(cellX(c), cellY(r)) ? 1 : 0;
+      }
+    }
+  }
+
+  /* Closest walkable cell to a point, spiralling outwards. */
+  function nearestCell(x, y) {
+    if (!NAV.grid) return -1;
+    var cols = NAV.cols;
+    var c0 = cellCol(x), r0 = cellRow(y);
+    if (inNav(c0, r0) && NAV.grid[r0 * cols + c0]) return r0 * cols + c0;
+    var span = Math.max(cols, NAV.rows);
+    for (var rad = 1; rad <= span; rad++) {
+      var best = -1, bestD = Infinity;
+      for (var r = r0 - rad; r <= r0 + rad; r++) {
+        for (var c = c0 - rad; c <= c0 + rad; c++) {
+          if (Math.max(Math.abs(c - c0), Math.abs(r - r0)) !== rad) continue;
+          if (!inNav(c, r) || !NAV.grid[r * cols + c]) continue;
+          var wx = cellX(c) - x, wy = cellY(r) - y;
+          var d = wx * wx + wy * wy;
+          if (d < bestD) { bestD = d; best = r * cols + c; }
+        }
+      }
+      if (best >= 0) return best;
+    }
+    return -1;
+  }
+
+  function nearestSpot(x, y) {
+    var k = nearestCell(x, y);
+    if (k < 0) return null;
+    var cols = NAV.cols, c = k % cols, r = (k - c) / cols;
+    return { x: cellX(c), y: cellY(r) };
+  }
+
+  /* Is the straight segment walkable for the visitor? */
+  function lineClear(x0, y0, x1, y1) {
+    var dx = x1 - x0, dy = y1 - y0;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    var steps = Math.max(1, Math.ceil(len / 3));
+    for (var i = 1; i <= steps; i++) {
+      var k = i / steps;
+      if (!standable(x0 + dx * k, y0 + dy * k)) return false;
+    }
+    return true;
+  }
+
+  /* Route from (fx, fy) to (tx, ty). When `zone` is given, the walk ends on a
+     spot inside it, so the thing you clicked is actually reachable. Returns an
+     array of waypoints (empty = already there) or null. */
+  function navRoute(fx, fy, tx, ty, zone) {
+    tx = clamp(tx, ROOM.x0 + 4, ROOM.x1 - 4);
+    ty = clamp(ty, ROOM.y0 + 4, ROOM.y1 - 4);
+
+    /* straight shot: shortest, smoothest, and the common case */
+    if (standable(tx, ty) && lineClear(fx, fy, tx, ty)) return [{ x: tx, y: ty }];
+
+    var cols = NAV.cols, rows = NAV.rows, grid = NAV.grid;
+    if (!grid) return null;
+    var total = cols * rows;
+    var start = nearestCell(fx, fy);
+    if (start < 0) return null;
+
+    var dist = new Float32Array(total);
+    var prev = new Int32Array(total);
+    var done = new Uint8Array(total);
+    for (var i = 0; i < total; i++) { dist[i] = Infinity; prev[i] = -1; }
+
+    var heap = [start];
+    var hd = [0];
+    dist[start] = 0;
+
+    function swap(a, b) {
+      var t = heap[a]; heap[a] = heap[b]; heap[b] = t;
+      var u = hd[a]; hd[a] = hd[b]; hd[b] = u;
+    }
+    function push(k, d) {
+      heap.push(k); hd.push(d);
+      var i2 = heap.length - 1;
+      while (i2 > 0) {
+        var p = (i2 - 1) >> 1;
+        if (hd[p] <= hd[i2]) break;
+        swap(p, i2);
+        i2 = p;
+      }
+    }
+    function pop() {
+      var top = heap[0];
+      var last = heap.pop(), lastD = hd.pop();
+      if (heap.length) {
+        heap[0] = last;
+        hd[0] = lastD;
+        var i3 = 0;
+        for (;;) {
+          var l = i3 * 2 + 1, r2 = l + 1, m = i3;
+          if (l < heap.length && hd[l] < hd[m]) m = l;
+          if (r2 < heap.length && hd[r2] < hd[m]) m = r2;
+          if (m === i3) break;
+          swap(m, i3);
+          i3 = m;
+        }
+      }
+      return top;
+    }
+
+    while (heap.length) {
+      var k = pop();
+      if (done[k]) continue;
+      done[k] = 1;
+      var c = k % cols, r = (k - c) / cols;
+      for (var d = 0; d < 8; d++) {
+        var nc = c + DX[d], nr = r + DY[d];
+        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+        var nk = nr * cols + nc;
+        if (!grid[nk] || done[nk]) continue;
+        var diag = DX[d] !== 0 && DY[d] !== 0;
+        /* no cutting corners between two blocked cells */
+        if (diag && (!grid[r * cols + nc] || !grid[nr * cols + c])) continue;
+        var nd = dist[k] + (diag ? 1.41421356 : 1);
+        if (nd < dist[nk] - 1e-6) { dist[nk] = nd; prev[nk] = k; push(nk, nd); }
+      }
+    }
+
+    /* the best reachable cell: inside the zone when there is one, and as close
+       to the exact point as possible */
+    var goal = -1, bestScore = Infinity;
+    for (var g = 0; g < total; g++) {
+      if (!isFinite(dist[g])) continue;
+      var gc = g % cols, gr = (g - gc) / cols;
+      var wx = cellX(gc), wy = cellY(gr);
+      var score = Math.abs(wx - tx) + Math.abs(wy - ty);
+      if (zone && rectDist(wx, wy, zone) > 0) score += 10000;
+      if (score < bestScore) { bestScore = score; goal = g; }
+    }
+    if (goal < 0) return null;
+
+    var chain = [];
+    for (var node = goal; node >= 0; node = prev[node]) {
+      chain.push(node);
+      if (node === start) break;
+    }
+    chain.reverse();
+
+    var points = [];
+    for (var q = 1; q < chain.length; q++) {
+      var c4 = chain[q] % cols, r4 = (chain[q] - c4) / cols;
+      points.push({ x: cellX(c4), y: cellY(r4) });
+    }
+    /* land on the exact spot when it is standable and the last hop is clear */
+    if (standable(tx, ty)) {
+      var lastPoint = points.length ? points[points.length - 1] : { x: fx, y: fy };
+      if (lineClear(lastPoint.x, lastPoint.y, tx, ty)) points.push({ x: tx, y: ty });
+    }
+    return points;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Walking a route                                                     */
+  function startRoute(x, y, zone, interactId) {
+    var points = navRoute(player.x, player.y, x, y, zone);
+    if (!points) { endRoute(false); walkTarget = null; return false; }
+
+    path = points;
+    stuckFor = 0;
+    stuckFrom = Infinity;
+    pendingInteract = interactId || null;
+    pendingZone = interactId ? (zone || null) : null;
+
+    if (!points.length) {
+      /* already standing there */
+      walkTarget = null;
+      if (pendingInteract) endRoute(true);
+      return true;
+    }
+    walkTarget = { x: x, y: y };
+    return true;
+  }
+
+  function endRoute(arrived) {
+    path = [];
+    walkTarget = null;
+    stuckFor = 0;
+    stuckFrom = Infinity;
+    player.moving = false;
+    var id = pendingInteract;
+    pendingInteract = null;
+    pendingZone = null;
+    if (arrived && id) interact(id);
+  }
+
+  function followPath(dt) {
+    var node = path[0];
+    if (!node) { endRoute(true); return; }
+
+    var dx = node.x - player.x, dy = node.y - player.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist <= 2.2) {
+      player.x = node.x;
+      player.y = node.y;
+      path.shift();
+      player.moving = true;
+      stuckFor = 0;
+      stuckFrom = Infinity;
+      if (!path.length) endRoute(true);
+      return;
+    }
+
+    var len = dist || 1;
+    var step = Math.min(dist, player.speed * dt);
+    var moved = moveBy((dx / len) * step, (dy / len) * step);
+    setDir(dx, dy);
+    player.moving = true;
+
+    if (dist < stuckFrom - 0.2) {
+      stuckFrom = dist;
+      stuckFor = 0;
+      return;
+    }
+
+    stuckFor += dt;
+    if (stuckFor < 0.45) return;
+
+    /* wedged: drop this waypoint and re-plan from where we actually are */
+    stuckFor = 0;
+    stuckFrom = Infinity;
+    path.shift();
+    if (!path.length) { endRoute(true); return; }
+    if (!moved && walkTarget) {
+      var rest = navRoute(player.x, player.y, walkTarget.x, walkTarget.y, pendingZone);
+      if (rest && rest.length) path = rest;
+      else if (!rest) endRoute(true);
     }
   }
 
@@ -108,21 +401,23 @@ window.Game = (function () {
 
   /* ---------------------------------------------------------------- */
   /* Mohamed walking himself: used by the guided tour so he can lead the
-     visitor from station to station. Same collision rules as the player. */
+     visitor from station to station. He follows the same grid route. */
   function updateNpc(dt) {
-    if (!npcPath) { npc.moving = false; npc.frame = 0; npc.anim = 0; return; }
+    if (!npcPath.length) {
+      if (npc.moving) { npc.moving = false; npc.frame = 0; npc.anim = 0; }
+      return;
+    }
 
-    var tx = npcPath.x - npc.x;
-    var ty = npcPath.y - npc.y;
+    var node = npcPath[0];
+    var tx = node.x - npc.x;
+    var ty = node.y - npc.y;
     var dist = Math.sqrt(tx * tx + ty * ty);
 
-    if (dist < 2.5) {
-      npc.x = npcPath.x;
-      npc.y = npcPath.y;
-      npcPath = null;
-      npc.moving = false;
-      npc.frame = 0;
-      npc.anim = 0;
+    if (dist <= 2.2) {
+      npc.x = node.x;
+      npc.y = node.y;
+      npcPath.shift();
+      if (!npcPath.length) { npc.moving = false; npc.frame = 0; npc.anim = 0; }
       return;
     }
 
@@ -135,9 +430,10 @@ window.Game = (function () {
     else if (!npcBlocked(npc.x, ny)) { npc.y = ny; }
     else if (!npcBlocked(nx, npc.y)) { npc.x = nx; }
     else {
-      /* wedged: sidestep along the dominant free axis, or give up this frame */
-      if (!npcBlocked(npc.x, npc.y + Math.sign(ty || 1) * 7)) npc.y += Math.sign(ty || 1) * 7;
-      else if (!npcBlocked(npc.x + Math.sign(tx || 1) * 7, npc.y)) npc.x += Math.sign(tx || 1) * 7;
+      /* wedged: drop the waypoint and carry on with the rest of the route */
+      npcPath.shift();
+      if (!npcPath.length) { npc.moving = false; npc.frame = 0; npc.anim = 0; }
+      return;
     }
 
     npc.dir = Math.abs(tx) > Math.abs(ty) ? (tx > 0 ? "right" : "left")
@@ -152,16 +448,19 @@ window.Game = (function () {
     var m = tourMove;
     if (!m) return;
     tourMove = null;
-    npcPath = null;
+    npcPath = [];
+    path = [];
     walkTarget = null;
     pendingInteract = null;
+    pendingZone = null;
     if (forced) {
+      /* never leave the tour stuck: place both of them on the nearest spot */
       if (m.npc) {
-        var ns = npcFreeSpot(m.npc.x, m.npc.y);
+        var ns = nearestSpot(m.npc.x, m.npc.y);
         if (ns) { npc.x = ns.x; npc.y = ns.y; }
       }
       if (m.player) {
-        var ps = freeSpot(clamp(m.player.x, 16, 368), clamp(m.player.y, 58, 212));
+        var ps = standable(m.player.x, m.player.y) ? m.player : nearestSpot(m.player.x, m.player.y);
         if (ps) { player.x = ps.x; player.y = ps.y; }
       }
       npc.moving = false;
@@ -174,8 +473,8 @@ window.Game = (function () {
 
   function updateTourMove() {
     if (!tourMove) return;
-    var npcOk = !tourMove.npc || !npcPath;
-    var playerOk = !tourMove.player || !walkTarget;
+    var npcOk = !tourMove.npc || !npcPath.length;
+    var playerOk = !tourMove.player || !path.length;
     if (npcOk && playerOk) endTourMove(false);
     else if (time > tourMove.deadline) endTourMove(true);
   }
@@ -203,32 +502,15 @@ window.Game = (function () {
     if (keys.right) dx += 1;
 
     if (dx || dy) {
-      walkTarget = null;
-      pendingInteract = null;
+      endRoute(false);            /* taking the wheel cancels the route */
       var len = Math.sqrt(dx * dx + dy * dy) || 1;
       moveBy((dx / len) * player.speed * dt, (dy / len) * player.speed * dt);
       setDir(dx, dy);
       player.moving = true;
-    } else if (walkTarget) {
-      var tx = walkTarget.x - player.x;
-      var ty = walkTarget.y - player.y;
-      var dist = Math.sqrt(tx * tx + ty * ty);
-      if (dist < 2.5) {
-        player.x = walkTarget.x;
-        player.y = walkTarget.y;
-        walkTarget = null;
-        player.moving = false;
-        if (pendingInteract) {
-          var id = pendingInteract;
-          pendingInteract = null;
-          interact(id);
-        }
-      } else {
-        moveBy((tx / dist) * player.speed * dt, (ty / dist) * player.speed * dt);
-        setDir(tx, ty);
-        player.moving = true;
-      }
+    } else if (path.length) {
+      followPath(dt);
     } else {
+      walkTarget = null;
       player.moving = false;
     }
 
@@ -715,20 +997,13 @@ window.Game = (function () {
     };
   }
 
-  function freeSpot(x, y) {
-    if (!blocked(x, y)) return { x: x, y: y };
-    for (var i = 1; i <= 16; i++) {
-      var nx = player.x + (x - player.x) * (1 - i / 16);
-      var ny = player.y + (y - player.y) * (1 - i / 16);
-      if (!blocked(nx, ny)) return { x: nx, y: ny };
-    }
-    return null;
-  }
-
   function walkTo(x, y) {
-    var spot = freeSpot(clamp(x, 16, 368), clamp(y, 58, 212));
-    if (!spot) return;
-    walkTarget = spot;
+    startRoute(
+      clamp(x, ROOM.x0 + 8, ROOM.x1 - 8),
+      clamp(y, ROOM.y0 + 8, ROOM.y1 - 8),
+      null,
+      null
+    );
   }
 
   function updateCursor() {
@@ -780,19 +1055,13 @@ window.Game = (function () {
       if (it) {
         if (rectDist(player.x, player.y, it.zone) <= 0) {
           interact(it.id);
-        } else {
-          var spot = freeSpot(it.stand.x, it.stand.y);
-          if (spot) {
-            walkTarget = spot;
-            pendingInteract = it.id;
-            window.Audio8.play("select");
-          }
+        } else if (startRoute(it.stand.x, it.stand.y, it.zone, it.id)) {
+          window.Audio8.play("select");
         }
         return;
       }
       if (p.y > 52) {
         walkTo(p.x, p.y);
-        pendingInteract = null;
       }
     });
 
@@ -812,7 +1081,7 @@ window.Game = (function () {
           ev.preventDefault();
           keys[dir] = true;
           btn.classList.add("is-down");
-          if (walkTarget) { walkTarget = null; pendingInteract = null; }
+          if (walkTarget || path.length) endRoute(false);
         }
         function up(ev) {
           if (ev) ev.preventDefault();
@@ -842,8 +1111,7 @@ window.Game = (function () {
 
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !UI.isBlocking() && !tourMode) {
-        walkTarget = null;
-        pendingInteract = null;
+        endRoute(false);
       }
     });
   }
@@ -853,8 +1121,7 @@ window.Game = (function () {
     setPaused: function (v) {
       uiPaused = !!v;
       if (uiPaused) {
-        walkTarget = null;
-        pendingInteract = null;
+        endRoute(false);
         keys = Object.create(null);
       }
     },
@@ -880,7 +1147,7 @@ window.Game = (function () {
         tourMode = !!on;
         npcGhost = !!on;
         if (!on) {
-          npcPath = null;
+          npcPath = [];
           tourMove = null;
           npc.moving = false;
           npc.frame = 0;
@@ -900,17 +1167,26 @@ window.Game = (function () {
       move: function (npcSpot, playerSpot) {
         return new Promise(function (resolve) {
           if (tourMove) endTourMove(true);
-          var m = { npc: npcSpot || null, player: playerSpot || null, done: resolve, deadline: time + 9 };
+          var m = { npc: npcSpot || null, player: playerSpot || null, done: resolve, deadline: time + 12 };
           tourMove = m;
           if (npcSpot) {
             var ns = npcFreeSpot(npcSpot.x, npcSpot.y) || { x: npc.x, y: npc.y };
-            npcPath = { x: ns.x, y: ns.y };
+            var np = navRoute(npc.x, npc.y, ns.x, ns.y, null);
+            npcPath = np && np.length ? np : [];
           }
           if (playerSpot) {
-            walkTarget = freeSpot(clamp(playerSpot.x, 16, 368), clamp(playerSpot.y, 58, 212))
-              || { x: player.x, y: player.y };
+            var ps = standable(playerSpot.x, playerSpot.y)
+              ? playerSpot
+              : (nearestSpot(playerSpot.x, playerSpot.y) || { x: player.x, y: player.y });
+            var pp = navRoute(player.x, player.y, ps.x, ps.y, null);
+            path = pp && pp.length ? pp : [];
+            walkTarget = path.length ? { x: ps.x, y: ps.y } : null;
+            pendingInteract = null;
+            pendingZone = null;
+            stuckFor = 0;
+            stuckFrom = Infinity;
           }
-          if (!npcSpot && !playerSpot) endTourMove(false);
+          if ((!npcSpot || !npcPath.length) && (!playerSpot || !path.length)) endTourMove(false);
         });
       },
     },
@@ -927,6 +1203,24 @@ window.Game = (function () {
     onSecret: onSecret,
     onIdleProgress: onIdleProgress,
     spawn: spawn,
+    /* Test hook: the walkability grid and a route, without moving anyone. */
+    debugNav: function (fx, fy, tx, ty) {
+      if (!NAV.grid) return null;
+      var free = 0;
+      for (var i = 0; i < NAV.grid.length; i++) free += NAV.grid[i];
+      var out = {
+        cols: NAV.cols, rows: NAV.rows, free: free, total: NAV.grid.length,
+        solids: Room.solids.map(function (s) { return s.x + "," + s.y + " " + s.w + "x" + s.h; }),
+        rowsArt: [],
+      };
+      for (var r = 0; r < NAV.rows; r++) {
+        var line = "";
+        for (var c = 0; c < NAV.cols; c++) line += NAV.grid[r * NAV.cols + c] ? "." : "#";
+        out.rowsArt.push(line);
+      }
+      if (fx !== undefined) out.route = navRoute(fx, fy, tx, ty, null);
+      return out;
+    },
     debugState: function () {
       return {
         ready: spritesReady,
@@ -936,7 +1230,7 @@ window.Game = (function () {
         npcEmote: npcEmote ? npcEmote.text : null,
         npc: { x: Math.round(npc.x), y: Math.round(npc.y), dir: npc.dir, moving: npc.moving },
         player: { x: Math.round(player.x), y: Math.round(player.y), dir: player.dir, moving: player.moving },
-        tour: { mode: tourMode, moving: !!npcPath, awaiting: !!tourMove },
+        tour: { mode: tourMode, moving: !!npcPath.length, awaiting: !!tourMove },
         legend: legend,
         speed: player.speed,
       };
@@ -950,6 +1244,7 @@ window.Game = (function () {
       document.body.classList.add("is-booting");
 
       Room.init();
+      buildNav();
       UI.init();
       if (window.Secrets) window.Secrets.init();
       restoreSecrets();

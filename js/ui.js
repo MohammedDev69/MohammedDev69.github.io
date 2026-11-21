@@ -1002,6 +1002,38 @@ window.UI = (function () {
       $("btn-github").addEventListener("click", function () { sound("select"); openModal("github"); });
       $("btn-help").addEventListener("click", function () { sound("select"); openModal("help"); });
 
+      /* Immersive shell: the room takes the viewport. Native fullscreen when
+         the browser allows it, the CSS mode alone when it does not (iOS). */
+      var btnImmersive = $("btn-immersive");
+      function fsElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement || null;
+      }
+      function setImmersive(on) {
+        document.body.classList.toggle("is-immersive", !!on);
+        if (btnImmersive) btnImmersive.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      function toggleImmersive() {
+        var want = !document.body.classList.contains("is-immersive");
+        sound("select");
+        setImmersive(want);
+        var el = document.documentElement;
+        try {
+          if (want && el.requestFullscreen && !fsElement()) {
+            var p = el.requestFullscreen();
+            if (p && p.catch) p.catch(function () {});
+          } else if (!want && fsElement() && document.exitFullscreen) {
+            var q = document.exitFullscreen();
+            if (q && q.catch) q.catch(function () {});
+          }
+        } catch (err) { /* the CSS mode is enough */ }
+      }
+      if (btnImmersive) {
+        btnImmersive.addEventListener("click", toggleImmersive);
+      }
+      document.addEventListener("fullscreenchange", function () {
+        if (!fsElement() && document.body.classList.contains("is-immersive")) setImmersive(false);
+      });
+
       overlay.addEventListener("click", function (e) {
         if (e.target === overlay) closeModal();
       });
@@ -1024,6 +1056,10 @@ window.UI = (function () {
           return;
         }
         if (e.key === "Escape") closeDialogue();
+        if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          toggleImmersive();
+        }
       });
 
       /* first gesture unlocks audio */

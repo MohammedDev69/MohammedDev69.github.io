@@ -106,6 +106,7 @@ window.I18N = (function () {
 
       "aria.github": "Open GitHub profile",
       "aria.howto": "How to play",
+      "aria.fullscreen": "Full screen (F)",
       "aria.lang": "Change language",
       "aria.audio": "Audio settings",
       "aria.music": "Toggle 8-bit music",
@@ -257,6 +258,7 @@ window.I18N = (function () {
 
       "aria.github": "فتح حساب جيت هاب",
       "aria.howto": "طريقة اللعب",
+      "aria.fullscreen": "شاشة كاملة (F)",
       "aria.lang": "تغيير اللغة",
       "aria.audio": "إعدادات الصوت",
       "aria.music": "تشغيل/إيقاف الموسيقى",

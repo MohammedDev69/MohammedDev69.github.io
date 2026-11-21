@@ -28,9 +28,14 @@ python -m http.server 5173
 | Pick a dialogue topic | `1`–`4`, arrows + `Enter` | tap a choice |
 | Close a window | `Esc` | tap the ✕ or the backdrop |
 | Guided tour | tap a button in Mohamed's greeting, `Esc` to leave | same |
+| Full screen | `F` | the ⤢ chip in the top-right HUD |
 
 Clicking or tapping any object walks the visitor over to it and interacts when
-he arrives.
+he arrives, routing around the furniture rather than grinding into it.
+
+Full screen (`F` or the ⤢ chip) drops the header and footer, grows the room to
+the whole viewport and asks the browser for native full screen when it allows
+it; leaving native full screen (or pressing `F` again) restores the page.
 
 ## Files
 

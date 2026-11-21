@@ -19,7 +19,7 @@
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --shadow-pixel: 0 0 0 2px #05070a, 0 0 0 4px #2b3547, 0 26px 70px rgba(0, 0, 0, 0.65);
   /* vertical space the room must leave for the header + chrome + footer */
-  --overhead: 232px;
+  --overhead: 148px;
 }
 
 * { box-sizing: border-box; }
@@ -120,13 +120,13 @@ button { font: inherit; touch-action: manipulation; }
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1440px;
+  max-width: 2200px;
   margin: 0 auto;
   padding:
-    max(14px, env(safe-area-inset-top))
-    max(clamp(12px, 2.6vw, 34px), env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom))
-    max(clamp(12px, 2.6vw, 34px), env(safe-area-inset-left));
+    max(10px, env(safe-area-inset-top))
+    max(clamp(10px, 2vw, 26px), env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(clamp(10px, 2vw, 26px), env(safe-area-inset-left));
 }
 
 .topbar {
@@ -135,8 +135,8 @@ button { font: inherit; touch-action: manipulation; }
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 2px 2px 16px;
-  margin-bottom: 4px;
+  padding: 0 2px 10px;
+  margin-bottom: 2px;
 }
 .topbar::after {
   content: "";
@@ -156,8 +156,8 @@ button { font: inherit; touch-action: manipulation; }
 }
 
 .brand-avatar {
-  width: 64px;
-  height: 64px;
+  width: 54px;
+  height: 54px;
   flex: none;
   image-rendering: pixelated;
   background: radial-gradient(circle at 50% 28%, #171f2e, #0a0d13 76%);
@@ -288,17 +288,46 @@ body.is-booting .brand-avatar { visibility: hidden; }
   display: grid;
   place-items: center;
   min-height: 0;
-  padding: 4px 0 2px;
+  padding: 2px 0 0;
 }
 
 .cabinet {
-  width: min(1180px, 100%, calc((100vh - var(--overhead)) * 1.7143));
-  min-width: 300px;
+  width: min(100%, calc((100vh - var(--overhead)) * 1.7143));
+  min-width: 0;
   position: relative;
 }
 @supports (height: 100dvh) {
-  .cabinet { width: min(1180px, 100%, calc((100dvh - var(--overhead)) * 1.7143)); }
+  .cabinet { width: min(100%, calc((100dvh - var(--overhead)) * 1.7143)); }
 }
+
+/* Immersive: the room owns the whole viewport. Toggled from the HUD
+   (or with F), and automatically left when the browser exits fullscreen. */
+body.is-immersive { --overhead: 54px; }
+body.is-immersive .site { max-width: none; padding: 0; }
+body.is-immersive .topbar { padding: 7px 12px; margin: 0; }
+body.is-immersive .brand-avatar { display: none; }
+body.is-immersive .brand-name { font-size: 14px; }
+body.is-immersive .brand-sub { display: none; }
+body.is-immersive .stage { padding: 0; }
+body.is-immersive .chrome,
+body.is-immersive .cabinet-foot { display: none; }
+body.is-immersive .screen { border: 0; box-shadow: none; }
+body.is-immersive .cabinet { width: min(100%, calc((100dvh - var(--overhead)) * 1.7143)); }
+
+/* ...and on touch the pad floats over the floor instead of pushing. */
+body.is-immersive.is-touch .touch-bar {
+  position: fixed;
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 40;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+body.is-immersive.is-touch .touch-bar .dpad,
+body.is-immersive.is-touch .touch-action { pointer-events: auto; }
+body.is-immersive.is-touch { --overhead: 54px; }
 
 .chrome {
   display: flex;
@@ -667,7 +696,7 @@ body.is-touch .touch-bar {
 
 /* On a touch device the room has to share the screen with the pad, and the
    floating HUD needs real finger targets rather than 27px chips. */
-body.is-touch { --overhead: 380px; --pad-cell: 52px; --pad-action: 84px; }
+body.is-touch { --overhead: 316px; --pad-cell: 52px; --pad-action: 84px; }
 body.is-touch .chip { height: 34px; padding: 0 11px; font-size: 9.5px; }
 body.is-touch .chip--square { width: 34px; height: 34px; font-size: 13px; }
 body.is-touch .audio-toggles { gap: 8px; }
@@ -1788,7 +1817,8 @@ body.lang-ar .choice.is-focused { transform: translateX(-2px); }
 /* Landscape phones: the pad floats over the room's black margins instead
    of pushing the scene up, so the room keeps as much height as possible. */
 @media (orientation: landscape) and (max-height: 700px) {
-  body.is-touch { --overhead: 214px; --pad-cell: 44px; --pad-action: 66px; }
+  body.is-touch { --overhead: 140px; --pad-cell: 44px; --pad-action: 66px; }
+  .cabinet-foot { display: none; }
   body.is-touch .touch-bar {
     position: fixed;
     left: max(10px, env(safe-area-inset-left));
