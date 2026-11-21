@@ -55,5 +55,7 @@ image or the code:
 `tools/sprite-lab.html` reproduces both previews live: drop a sheet in, tick
 the options, and copy the resulting `sprites` block.
 
-If a file is missing or unreadable, the game silently keeps its built-in
-procedural pixel characters, so the site never shows a broken image.
+If a file is missing or unreadable, the loader retries once with a cache
+buster. If it still fails, the other sheet covers both characters; if neither
+loads, the room runs without the two figures rather than falling back to any
+placeholder art.

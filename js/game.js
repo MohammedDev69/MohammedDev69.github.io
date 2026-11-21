@@ -378,11 +378,16 @@ window.Game = (function () {
   }
 
   function drawPlayer() {
-    var set = window.Sprites.player[player.dir] || window.Sprites.player.down;
-    drawCharacter(set[player.frame] || set[0], player.x, player.y);
+    var set = window.Sprites.player;
+    if (!set) return;
+    var dir = set[player.dir] || set.down;
+    if (!dir || !dir.length) return;
+    drawCharacter(dir[player.frame] || dir[0], player.x, player.y);
   }
 
   function drawNpc() {
+    var frames = window.Sprites.npc;
+    if (!frames) return;
     var dx = player.x - npc.x;
     var dy = player.y - npc.y;
     var dist = Math.sqrt(dx * dx + dy * dy);
@@ -392,7 +397,8 @@ window.Game = (function () {
       else dir = dy > 0 ? "down" : "up";
     }
     var bob = Math.sin(time * 1.5) > 0.72 ? -1 : 0;
-    var set = window.Sprites.npc[dir] || window.Sprites.npc.down;
+    var set = frames[dir] || frames.down;
+    if (!set || !set.length) return;
     drawCharacter(set[0], npc.x, npc.y + bob);
   }
 
@@ -504,26 +510,24 @@ window.Game = (function () {
 
   function boot() {
     var sheets = (window.PORTFOLIO && window.PORTFOLIO.sprites) || {};
-    var hasSheets = !!(sheets.npcSheet || sheets.playerSheet);
-    var hasPortrait = !!sheets.npcPortrait;
 
-    /* nothing configured: the built-in characters are the intended art */
-    if (!hasSheets && !hasPortrait) { reveal(); return; }
-
-    var loaded = false;
-    var load = window.Sprites.loadSheets(sheets)
-      .then(function (v) { loaded = v; return v; })
-      .catch(function () { return false; });
+    /* The sheets are the characters, so they are always requested. A failure
+       is survivable: the room still runs, just without the two figures. */
+    var result = null;
+    var load = window.Sprites.load(sheets)
+      .then(function (r) { result = r; return r; })
+      .catch(function () { return null; });
 
     Promise.race([load, wait(BOOT_TIMEOUT_MS)])
       .then(function () {
-        if (loaded) {
-          UI.toast("Character sheets loaded.");
-        } else if (window.console && console.warn) {
-          console.warn("[sprites] No sheet files found; using built-in pixel characters.");
+        if (!result || !result.characters) {
+          if (window.console && console.warn) {
+            console.warn("[sprites] Character sheets did not resolve; the room will " +
+              "show up without them.");
+          }
+          UI.toast("Character art could not be loaded.");
         }
-        /* a custom portrait does not change the room, so do not hold it back */
-        return hasSheets ? wait(MIN_BOOT_MS) : null;
+        return wait(MIN_BOOT_MS);
       })
       .then(reveal);
   }
@@ -749,7 +753,6 @@ window.Game = (function () {
       document.body.classList.toggle("is-touch", isTouch);
       document.body.classList.add("is-booting");
 
-      window.Sprites.build();
       Room.init();
       UI.init();
       if (window.Secrets) window.Secrets.init();
@@ -757,9 +760,9 @@ window.Game = (function () {
       bindInput();
       drawBrandAvatar();
 
-      /* Hold the room behind the boot screen until the hand-drawn sheets are
-         either loaded or proved missing. Nothing is painted with the fallback
-         characters first, so the art never visibly swaps. */
+      /* Hold the room behind the boot screen until the character sheets have
+         loaded or failed. Nothing is ever painted with placeholder art, so the
+         figures cannot visibly swap. */
       boot();
     },
   };

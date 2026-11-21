@@ -69,22 +69,27 @@ the `projects` list in the config and labels itself "OFFLINE COPY".
 
 ## Character art
 
-The room, furniture, effects and the two characters are drawn procedurally at
-runtime, so the site can never break an image. To use hand-drawn art instead,
-drop the two PNG sheets into `assets/` — see `assets/README.md` for the exact
-grid the importer expects. Missing files fall back to the built-in character,
-which is why the site keeps working either way.
+The two characters come from the hand-drawn sprite sheets in `assets/`:
 
-When the sheets are present, Mohamed's greeting portrait is cropped from the
-top of his front frame, and `sprites.swapLeftRight` / `sprites.rowOrder` in
-`js/config.js` fix a sheet whose side views or row order came out differently
-without touching the art. `tools/sprite-lab.html` previews a sheet's slices,
-walk cycle and portrait before it is shipped.
+| File | Role |
+| --- | --- |
+| `assets/mohamed-spritesheet.png` | Mohamed, standing by the desk |
+| `assets/visitor-spritesheet.png` | The playable visitor |
 
-The room stays behind a short boot screen until the sheet art is resolved, so
-the built-in characters are never shown first and the art never visibly swaps.
-If the files are missing or fail to load, the boot screen clears anyway and the
-built-in characters are used — the site can never get stuck loading.
+They are the characters, not an optional skin: `js/sprites.js` contains no
+procedural figure art at all, so there is nothing crude to fall back to.
+`assets/README.md` documents the exact 4x4 grid the loader expects, and
+`sprites.swapLeftRight` / `sprites.rowOrder` in `js/config.js` fix a sheet whose
+side views or row order came out differently without touching the art.
+`tools/sprite-lab.html` previews a sheet's slices, walk cycle and portrait.
+
+Mohamed's dialogue portrait is cropped from the top of his front frame (or from
+an optional square PNG if `sprites.npcPortrait` is set).
+
+The room stays behind a short boot screen until the sheets resolve, so the
+figures never visibly swap in. If one sheet fails it is retried once with a
+cache buster, then the other sheet covers both roles; if neither loads the room
+still runs, just without the two figures. The site can never get stuck loading.
 
 ## Easter eggs
 
