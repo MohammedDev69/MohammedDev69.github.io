@@ -40,6 +40,7 @@ window.Game = (function () {
      the two never collide, and proximity prompts are muted. */
   var npcPath = [];           /* the waypoints Mohamed is walking */
   var npcGhost = false;       /* the NPC stops blocking the visitor */
+  var npcAnchored = true;     /* Mohamed holds his spot: no pushing him around */
   var tourMode = false;       /* hides prompts/cursor while Mohamed guides */
   var tourMove = null;        /* the move currently being awaited */
 
@@ -75,8 +76,22 @@ window.Game = (function () {
 
   function npcBox() { return { x: npc.x - 7, y: npc.y - 7, w: 14, h: 7 }; }
 
-  /* Mohamed steps aside instead of turning into a wall. */
+  /* Mohamed never steps aside any more, so the visitor has to walk around him.
+     Routing asks these two helpers before it decides a cell is free. */
+  function npcHoldsPoint(x, y) {
+    if (!npcAnchored || npcGhost) return false;
+    return aabb(hitbox(x, y), npcBox());
+  }
+
+  function npcHoldsCell(cx, cy) { return npcHoldsPoint(cellX(cx), cellY(cy)); }
+
+  /* Mohamed used to step aside when the visitor walked into him, which let a
+     click (or the arrow keys) shove him out of his spot. He now holds his
+     ground: the visitor simply stops next to him. The one exception is a real
+     overlap (the tour may leave them on the same tile) — then he slides the
+     smallest amount that lets the visitor step out, never further. */
   function nudgeNpc(px, py) {
+    if (npcAnchored && !aabb(hitbox(player.x, player.y), npcBox())) return;
     var dx = npc.x - px, dy = npc.y - py;
     var len = Math.sqrt(dx * dx + dy * dy) || 1;
     var nx = npc.x + (dx / len) * 1.6;
@@ -177,27 +192,32 @@ window.Game = (function () {
     return { x: cellX(c), y: cellY(r) };
   }
 
-  /* Is the straight segment walkable for the visitor? */
-  function lineClear(x0, y0, x1, y1) {
+  /* Is the straight segment walkable for the visitor? With `avoidNpc` it may
+     not brush past Mohamed either, since he no longer steps aside. */
+  function lineClear(x0, y0, x1, y1, avoidNpc) {
     var dx = x1 - x0, dy = y1 - y0;
     var len = Math.sqrt(dx * dx + dy * dy);
     var steps = Math.max(1, Math.ceil(len / 3));
     for (var i = 1; i <= steps; i++) {
       var k = i / steps;
-      if (!standable(x0 + dx * k, y0 + dy * k)) return false;
+      var px = x0 + dx * k, py = y0 + dy * k;
+      if (!standable(px, py)) return false;
+      if (avoidNpc && npcHoldsPoint(px, py)) return false;
     }
     return true;
   }
 
   /* Route from (fx, fy) to (tx, ty). When `zone` is given, the walk ends on a
-     spot inside it, so the thing you clicked is actually reachable. Returns an
+     spot inside it, so the thing you clicked is actually reachable. `avoidNpc`
+     keeps the visitor out of Mohamed's tile (he no longer yields). Returns an
      array of waypoints (empty = already there) or null. */
-  function navRoute(fx, fy, tx, ty, zone) {
+  function navRoute(fx, fy, tx, ty, zone, avoidNpc) {
     tx = clamp(tx, ROOM.x0 + 4, ROOM.x1 - 4);
     ty = clamp(ty, ROOM.y0 + 4, ROOM.y1 - 4);
 
     /* straight shot: shortest, smoothest, and the common case */
-    if (standable(tx, ty) && lineClear(fx, fy, tx, ty)) return [{ x: tx, y: ty }];
+    if (standable(tx, ty) && !(avoidNpc && npcHoldsPoint(tx, ty)) &&
+      lineClear(fx, fy, tx, ty, avoidNpc)) return [{ x: tx, y: ty }];
 
     var cols = NAV.cols, rows = NAV.rows, grid = NAV.grid;
     if (!grid) return null;
@@ -257,6 +277,9 @@ window.Game = (function () {
         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
         var nk = nr * cols + nc;
         if (!grid[nk] || done[nk]) continue;
+        /* the start cell is the visitor's own tile — never block it, or an
+           overlap would strand them with no route at all */
+        if (avoidNpc && nk !== start && npcHoldsCell(nc, nr)) continue;
         var diag = DX[d] !== 0 && DY[d] !== 0;
         /* no cutting corners between two blocked cells */
         if (diag && (!grid[r * cols + nc] || !grid[nr * cols + c])) continue;
@@ -272,6 +295,7 @@ window.Game = (function () {
       if (!isFinite(dist[g])) continue;
       var gc = g % cols, gr = (g - gc) / cols;
       var wx = cellX(gc), wy = cellY(gr);
+      if (avoidNpc && g !== start && npcHoldsPoint(wx, wy)) continue;
       var score = Math.abs(wx - tx) + Math.abs(wy - ty);
       if (zone && rectDist(wx, wy, zone) > 0) score += 10000;
       if (score < bestScore) { bestScore = score; goal = g; }
@@ -291,9 +315,9 @@ window.Game = (function () {
       points.push({ x: cellX(c4), y: cellY(r4) });
     }
     /* land on the exact spot when it is standable and the last hop is clear */
-    if (standable(tx, ty)) {
+    if (standable(tx, ty) && !(avoidNpc && npcHoldsPoint(tx, ty))) {
       var lastPoint = points.length ? points[points.length - 1] : { x: fx, y: fy };
-      if (lineClear(lastPoint.x, lastPoint.y, tx, ty)) points.push({ x: tx, y: ty });
+      if (lineClear(lastPoint.x, lastPoint.y, tx, ty, avoidNpc)) points.push({ x: tx, y: ty });
     }
     return points;
   }
@@ -301,7 +325,7 @@ window.Game = (function () {
   /* ---------------------------------------------------------------- */
   /* Walking a route                                                     */
   function startRoute(x, y, zone, interactId) {
-    var points = navRoute(player.x, player.y, x, y, zone);
+    var points = navRoute(player.x, player.y, x, y, zone, true);
     if (!points) { endRoute(false); walkTarget = null; return false; }
 
     path = points;
@@ -371,7 +395,7 @@ window.Game = (function () {
     path.shift();
     if (!path.length) { endRoute(true); return; }
     if (!moved && walkTarget) {
-      var rest = navRoute(player.x, player.y, walkTarget.x, walkTarget.y, pendingZone);
+      var rest = navRoute(player.x, player.y, walkTarget.x, walkTarget.y, pendingZone, true);
       if (rest && rest.length) path = rest;
       else if (!rest) endRoute(true);
     }
@@ -1117,6 +1141,7 @@ window.Game = (function () {
          him there: the guided tour is the only thing that ever moves him. */
       home: function () {
         if (tourMode) return;
+        npcAnchored = true;
         var ns = npcFreeSpot(301, 112) || { x: npc.x, y: npc.y };
         var np = navRoute(npc.x, npc.y, ns.x, ns.y, null);
         npcPath = np && np.length ? np : [];
@@ -1146,7 +1171,7 @@ window.Game = (function () {
             var ps = standable(playerSpot.x, playerSpot.y)
               ? playerSpot
               : (nearestSpot(playerSpot.x, playerSpot.y) || { x: player.x, y: player.y });
-            var pp = navRoute(player.x, player.y, ps.x, ps.y, null);
+            var pp = navRoute(player.x, player.y, ps.x, ps.y, null, true);
             path = pp && pp.length ? pp : [];
             walkTarget = path.length ? { x: ps.x, y: ps.y } : null;
             pendingInteract = null;
@@ -1186,7 +1211,7 @@ window.Game = (function () {
         for (var c = 0; c < NAV.cols; c++) line += NAV.grid[r * NAV.cols + c] ? "." : "#";
         out.rowsArt.push(line);
       }
-      if (fx !== undefined) out.route = navRoute(fx, fy, tx, ty, null);
+      if (fx !== undefined) out.route = navRoute(fx, fy, tx, ty, null, true);
       return out;
     },
     debugState: function () {
@@ -1196,7 +1221,7 @@ window.Game = (function () {
         parts: parts.length,
         emote: emote ? emote.text : null,
         npcEmote: npcEmote ? npcEmote.text : null,
-        npc: { x: Math.round(npc.x), y: Math.round(npc.y), dir: npc.dir, moving: npc.moving },
+        npc: { x: Math.round(npc.x), y: Math.round(npc.y), dir: npc.dir, moving: npc.moving, anchored: npcAnchored },
         player: { x: Math.round(player.x), y: Math.round(player.y), dir: player.dir, moving: player.moving },
         tour: { mode: tourMode, moving: !!npcPath.length, awaiting: !!tourMove },
         legend: legend,
